@@ -28,6 +28,14 @@ void status_list_add(struct status_list *status_list, struct status *status)
     list_add(&status_list->list, &status->status_entry);
 }
 
+void status_change_text(struct status *status, const char *text)
+{
+    if (status->text)
+        free(status->text);
+
+    status->text = strdup(text);
+}
+
 static void render_color_last(struct bar_state *state)
 {
     fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
@@ -75,10 +83,16 @@ static void render_right_align(struct bar_state *state)
     state->sep_direction = 1;
 }
 
+static void render_left_align(struct bar_state *state)
+{
+    fprintf(state->bar_output, "%%{l}");
+}
+
 static void render_finish(struct bar_state *state)
 {
     fputc('\n', state->bar_output);
     fflush(state->bar_output);
+
     state->sep_direction = 0;
     state->past_first_entry = 0;
 }
@@ -106,6 +120,22 @@ static void status_render(struct bar_state *state)
         render_color(state);
         fprintf(state->bar_output, " %s ", status->text);
     }
+}
+
+static void mode_render(struct bar_state *state)
+{
+    struct bar_color mode_color = {
+        .fore = BAR_COLOR_MODE_FORE,
+        .back = BAR_COLOR_MODE_BACK,
+    };
+
+    if (!state->mode)
+        return ;
+
+    state->color = mode_color;
+    render_color(state);
+
+    fprintf(state->bar_output, " %s ", state->mode);
 }
 
 static void title_render(struct bar_state *state)
@@ -154,9 +184,9 @@ void bar_state_render(struct bar_state *state)
         .back = COLOR_BACK
     };
 
-    fprintf(stderr, "Render.\n");
-
+    render_left_align(state);
     ws_list_render(state);
+    mode_render(state);
     title_render(state);
 
     state->color = def_color;

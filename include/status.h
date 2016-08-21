@@ -3,10 +3,10 @@
 
 #include <i3ipc-glib/i3ipc-glib.h>
 
-void date_time_setup(i3ipcConnection *conn);
-void battery_setup(i3ipcConnection *conn);
-void alsa_setup(i3ipcConnection *conn);
-void mpdmon_setup(i3ipcConnection *conn);
-void wireless_setup(i3ipcConnection *conn);
+#include "battery.h"
+#include "datetime.h"
+#include "wireless.h"
+#include "alsa.h"
+#include "mpd.h"
 
 #endif

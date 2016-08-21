@@ -21,54 +21,57 @@
 #include "render.h"
 #include "bar_config.h"
 
-static struct status wireless_status = STATUS_INIT(wireless_status);
-
 enum wireless_state {
     NO_IFACE,
     NO_IP,
     HAS_IP,
 };
 
-static int netlink_socket;
-static enum wireless_state wireless_state;
-static char wireless_essid[IFNAMSIZ];
-static uint32_t wireless_ip;
-static int wireless_if_index;
+struct wireless {
+    struct status status;
+    struct bar_state *bar_state;
 
-static void wireless_render_status(void)
+    char *iface;
+
+    int netlink_socket;
+    enum wireless_state state;
+    char essid[IFNAMSIZ];
+    uint32_t ip;
+    int if_index;
+};
+
+static void wireless_render_status(struct wireless *wireless)
 {
     char buf[128];
     struct in_addr addr;
 
-    switch (wireless_state) {
+    switch (wireless->state) {
     case HAS_IP:
-        addr.s_addr = htonl(wireless_ip);
+        addr.s_addr = htonl(wireless->ip);
 
-        if (!*wireless_essid) {
-            snprintf(buf, sizeof(buf), WIRELESS_IFACE ": %s", inet_ntoa(addr));
+        if (!*wireless->essid) {
+            snprintf(buf, sizeof(buf), "%s: %s", wireless->iface, inet_ntoa(addr));
         } else {
-            snprintf(buf, sizeof(buf), WIRELESS_IFACE ": %s - %s", wireless_essid, inet_ntoa(addr));
+            snprintf(buf, sizeof(buf), "%s: %s - %s", wireless->iface, wireless->essid, inet_ntoa(addr));
         }
         goto setup_status;
 
     case NO_IP:
-        strcpy(buf, WIRELESS_IFACE ": Disconnected");
+        snprintf(buf, sizeof(buf), "%s: Disconnected", wireless->iface);
         goto setup_status;
 
     setup_status:
-        if (wireless_status.text)
-            free(wireless_status.text);
-
-        wireless_status.text = strdup(buf);
-        flag_set(&wireless_status.flags,STATUS_VISIBLE);
+        status_change_text(&wireless->status, buf);
+        flag_set(&wireless->status.flags, STATUS_VISIBLE);
         break;
+
     case NO_IFACE:
-        flag_clear(&wireless_status.flags, STATUS_VISIBLE);
+        flag_clear(&wireless->status.flags, STATUS_VISIBLE);
         break;
     }
 }
 
-static int wireless_get_settings(void)
+static int wireless_get_settings(struct wireless *wireless)
 {
     struct iwreq req;
     struct ifaddrs *addrs, *cur_addr;
@@ -86,14 +89,15 @@ static int wireless_get_settings(void)
      * will always be listed. If we never find our iface in the list, then it
      * doesn't exist.
      */
-    wireless_state = NO_IFACE;
+    wireless->state = NO_IFACE;
 
     for (cur_addr = addrs; cur_addr; cur_addr = cur_addr->ifa_next) {
-        if (strcmp(cur_addr->ifa_name, WIRELESS_IFACE) == 0) {
+        if (strcmp(cur_addr->ifa_name, wireless->iface) == 0) {
             struct sockaddr_in *sa;
 
-            if (cur_addr->ifa_addr->sa_family != AF_INET && wireless_state == NO_IFACE) {
-                wireless_state = NO_IP;
+            if (cur_addr->ifa_addr->sa_family != AF_INET) {
+                if (wireless->state == NO_IFACE)
+                    wireless->state = NO_IP;
                 continue;
             }
 
@@ -101,18 +105,18 @@ static int wireless_get_settings(void)
 
             fprintf(stderr, "Family: %d\n", cur_addr->ifa_addr->sa_family);
 
-            wireless_ip = ntohl(sa->sin_addr.s_addr);
-            wireless_state = HAS_IP;
+            wireless->ip = ntohl(sa->sin_addr.s_addr);
+            wireless->state = HAS_IP;
 
-            fprintf(stderr, "%s has ip 0x%08x: %s\n", cur_addr->ifa_name, wireless_ip, inet_ntoa(sa->sin_addr));
+            fprintf(stderr, "%s has ip 0x%08x: %s\n", cur_addr->ifa_name, wireless->ip, inet_ntoa(sa->sin_addr));
 
             memset(&req, 0, sizeof(req));
-            strcpy(req.ifr_name, WIRELESS_IFACE);
-            req.u.essid.pointer = wireless_essid;
-            req.u.essid.length = sizeof(wireless_essid);
+            strcpy(req.ifr_name, wireless->iface);
+            req.u.essid.pointer = wireless->essid;
+            req.u.essid.length = sizeof(wireless->essid);
 
-            if (ioctl(netlink_socket, SIOCGIWESSID, &req) < 0)
-                wireless_essid[0] = '\0';
+            if (ioctl(wireless->netlink_socket, SIOCGIWESSID, &req) < 0)
+                wireless->essid[0] = '\0';
 
             break;
         }
@@ -123,19 +127,20 @@ static int wireless_get_settings(void)
     return 0;
 }
 
-static int wireless_open_netlink(void)
+static int wireless_open_netlink(struct wireless *wireless)
 {
     struct sockaddr_nl addr;
-    netlink_socket = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-    if (netlink_socket < 0)
+
+    wireless->netlink_socket = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    if (wireless->netlink_socket < 0)
         return -1;
 
     memset(&addr, 0, sizeof(addr));
     addr.nl_family = AF_NETLINK;
     addr.nl_groups = RTMGRP_IPV4_IFADDR;
 
-    if (bind(netlink_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        close(netlink_socket);
+    if (bind(wireless->netlink_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        close(wireless->netlink_socket);
         return -1;
     }
 
@@ -154,12 +159,13 @@ static int wireless_open_netlink(void)
  */
 static gboolean wireless_handle_netlink(GIOChannel *gio, GIOCondition condition, gpointer data)
 {
+    struct wireless *wireless = data;
     int len;
     struct nlmsghdr *nlh;
     char buffer[4096];
     int change = 0;
 
-    len = recv(netlink_socket, buffer, sizeof(buffer), 0);
+    len = recv(wireless->netlink_socket, buffer, sizeof(buffer), 0);
 
     if (!len)
         return TRUE;
@@ -170,45 +176,64 @@ static gboolean wireless_handle_netlink(GIOChannel *gio, GIOCondition condition,
         if (nlh->nlmsg_type == RTM_NEWADDR || nlh->nlmsg_type == RTM_DELADDR) {
             struct ifaddrmsg *ifa = (struct ifaddrmsg *)NLMSG_DATA(nlh);
 
-            if (ifa->ifa_index == wireless_if_index) {
-                wireless_get_settings();
+            if (ifa->ifa_index == wireless->if_index) {
+                wireless_get_settings(wireless);
                 change = 1;
             }
         }
     }
 
     if (change) {
-        wireless_render_status();
-        bar_state_render(&bar_state);
+        wireless_render_status(wireless);
+        bar_state_render(wireless->bar_state);
     }
 
     return TRUE;
 }
 
-void wireless_setup(i3ipcConnection *conn)
+void wireless_status_add(struct bar_state *state, const char *ifname)
 {
+    struct wireless *wireless;
     GIOChannel *gio_read;
     int ret;
 
-    status_list_add(&bar_state.status_list, &wireless_status);
+    wireless = malloc(sizeof(*wireless));
+    memset(wireless, 0, sizeof(*wireless));
+    status_init(&wireless->status);
 
-    wireless_if_index = if_nametoindex(WIRELESS_IFACE);
-    if (!wireless_if_index)
-        return ;
+    wireless->bar_state = state;
+    wireless->if_index = if_nametoindex(ifname);
+    if (!wireless->if_index)
+        goto cleanup_wireless;
 
-    ret = wireless_open_netlink();
+    wireless->iface = strdup(ifname);
+
+    ret = wireless_open_netlink(wireless);
     if (ret)
-        return ;
+        goto cleanup_wireless;
 
-    ret = wireless_get_settings();
+    ret = wireless_get_settings(wireless);
     if (ret)
-        return ;
+        goto cleanup_wireless;
 
-    wireless_render_status();
+    wireless_render_status(wireless);
 
-    gio_read = g_io_channel_unix_new(netlink_socket);
-    g_io_add_watch(gio_read, G_IO_IN, wireless_handle_netlink, NULL);
+    gio_read = g_io_channel_unix_new(wireless->netlink_socket);
+    g_io_add_watch(gio_read, G_IO_IN, wireless_handle_netlink, wireless);
 
+    fprintf(stderr, "Adding wireless status\n");
+    status_list_add(&state->status_list, &wireless->status);
+
+    return ;
+
+  cleanup_wireless:
+    if (wireless->netlink_socket)
+        close(wireless->netlink_socket);
+
+    if (wireless->iface)
+        free(wireless->iface);
+
+    free(wireless);
     return ;
 }
 

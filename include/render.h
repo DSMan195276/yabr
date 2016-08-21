@@ -55,7 +55,7 @@ static inline void status_list_init(struct status_list *status)
     *status = (struct status_list)STATUS_LIST_INIT(*status);
 }
 
-
+void status_change_text(struct status *, const char *text);
 void status_list_add(struct status_list *, struct status *);
 
 /*
@@ -68,6 +68,7 @@ struct bar_state {
 
     struct bar_color color;
     FILE *bar_output;
+    char *mode;
     const char *output_title;
 
     struct bar_color prev_color;
