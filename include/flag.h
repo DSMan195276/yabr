@@ -10,4 +10,7 @@
 #define flag_test(flags, f) \
     (*(flags) & (1 << (f)))
 
+#define F(flag) \
+    (1 << (flag))
+
 #endif

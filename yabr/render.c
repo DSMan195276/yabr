@@ -67,9 +67,9 @@ static void render_color(struct bar_state *state)
     render_color_last(state);
 }
 
-static void render_cmd(struct bar_state *state, const char *cmd)
+static void render_cmd(struct bar_state *state, int button, const char *cmd)
 {
-    fprintf(state->bar_output, "%%{A:%s:}", cmd);
+    fprintf(state->bar_output, "%%{A%d:%s:}", button, cmd);
 }
 
 static void render_cmd_end(struct bar_state *state)
@@ -104,11 +104,19 @@ static void status_render(struct bar_state *state)
     struct status *status, *last_entry = list_last_entry(&state->status_list.list, struct status, status_entry);
 
     list_foreach_entry(&state->status_list.list, status, status_entry) {
+        int cmd_count = 0, i;
         if (!flag_test(&status->flags, STATUS_VISIBLE))
             continue;
 
         if (!status->text)
             continue;
+
+        for (i = 0; i < ARRAY_SIZE(status->cmds); i++) {
+            if (status->cmds[i].cmd) {
+                cmd_count++;
+                render_cmd(state, i + 1, status->cmds[i].cmd);
+            }
+        }
 
         if (status == last_entry)
             state->color = status_last_color;
@@ -119,6 +127,9 @@ static void status_render(struct bar_state *state)
 
         render_color(state);
         fprintf(state->bar_output, " %s ", status->text);
+
+        for (i = 0; i < cmd_count; i++)
+            render_cmd_end(state);
     }
 }
 
@@ -150,6 +161,9 @@ static void ws_list_render(struct bar_state *state)
 {
     char cmdbuf[128];
 
+    render_cmd(state, 4, "i3-msg workspace prev");
+    render_cmd(state, 5, "i3-msg workspace next");
+
     struct ws *ws;
     list_foreach_entry(&state->ws_list.list, ws, ws_entry) {
         if (strcmp(ws->output, state->output_title) != 0)
@@ -168,13 +182,16 @@ static void ws_list_render(struct bar_state *state)
 
         snprintf(cmdbuf, sizeof(cmdbuf), "i3-msg workspace %s", ws->name);
 
-        render_cmd(state, cmdbuf);
+        render_cmd(state, 1, cmdbuf);
         render_color(state);
 
         fprintf(state->bar_output, " %s ", ws->name);
 
         render_cmd_end(state);
     }
+
+    render_cmd_end(state);
+    render_cmd_end(state);
 }
 
 void bar_state_render(struct bar_state *state)

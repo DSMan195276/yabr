@@ -12,12 +12,19 @@
 #include "datetime.h"
 
 struct datetime {
-    struct status datetime;
+    union {
+        struct {
+            struct status date;
+            struct status time;
+        };
+        struct status datetime;
+    };
 
     struct bar_state *bar_state;
 
     int date_timeout;
     char *datefmt, *timefmt;
+    int flags;
 };
 
 static void update_time_date(struct datetime *datetime, const time_t *time)
@@ -29,10 +36,17 @@ static void update_time_date(struct datetime *datetime, const time_t *time)
     strftime(time_buf, sizeof(time_buf), datetime->timefmt, localtime(time));
     strftime(date_buf, sizeof(date_buf), datetime->datefmt, localtime(time));
 
-    snprintf(full, sizeof(full), "%s " BAR_SEP_RIGHTSIDE_SAME " %s", date_buf, time_buf);
+    if (flag_set(&datetime->flags, DATETIME_SPLIT)) {
+        status_change_text(&datetime->date, date_buf);
+        flag_set(&datetime->date.flags, STATUS_VISIBLE);
 
-    status_change_text(&datetime->datetime, full);
-    flag_set(&datetime->datetime.flags, STATUS_VISIBLE);
+        status_change_text(&datetime->time, time_buf);
+        flag_set(&datetime->time.flags, STATUS_VISIBLE);
+    } else {
+        snprintf(full, sizeof(full), "%s " BAR_SEP_RIGHTSIDE_SAME " %s", date_buf, time_buf);
+        status_change_text(&datetime->datetime, full);
+        flag_set(&datetime->datetime.flags, STATUS_VISIBLE);
+    }
 }
 
 static gboolean time_change(gpointer data)
@@ -58,19 +72,30 @@ static void datetime_setup(struct datetime *datetime)
     g_timeout_add_seconds(datetime->date_timeout, time_change, datetime);
 }
 
-void datetime_status_add(struct bar_state *state, const char *datefmt, const char *timefmt, int date_timeout)
+void datetime_status_add(struct bar_state *state, const char *datefmt, const char *timefmt, int date_timeout, int flags)
 {
     struct datetime *datetime = malloc(sizeof(*datetime));
 
     memset(datetime, 0, sizeof(*datetime));
-    status_init(&datetime->datetime);
+    if (flag_set(&flags, DATETIME_SPLIT)) {
+        status_init(&datetime->date);
+        status_init(&datetime->time);
+    } else {
+        status_init(&datetime->datetime);
+    }
     datetime->bar_state = state;
+    datetime->flags = flags;
     datetime->date_timeout = date_timeout;
     datetime->datefmt = strdup(datefmt);
     datetime->timefmt = strdup(timefmt);
 
     datetime_setup(datetime);
 
-    status_list_add(&state->status_list, &datetime->datetime);
+    if (flag_set(&flags, DATETIME_SPLIT)) {
+        status_list_add(&state->status_list, &datetime->time);
+        status_list_add(&state->status_list, &datetime->date);
+    } else {
+        status_list_add(&state->status_list, &datetime->datetime);
+    }
 }
 

@@ -113,6 +113,17 @@ static gboolean alsa_handle_change(GIOChannel *gio, GIOCondition condition, gpoi
     return TRUE;
 }
 
+static void alsa_create_cmds(struct alsa *alsa, const char *mix, const char *card)
+{
+    char buf[128];
+
+    snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" 1%%+", card, mix);
+    alsa->status.cmds[3].cmd = strdup(buf);
+
+    snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" 1%%-", card, mix);
+    alsa->status.cmds[4].cmd = strdup(buf);
+}
+
 void alsa_status_add(struct bar_state *state, const char *mix, const char *card)
 {
     struct alsa *alsa;
@@ -140,6 +151,8 @@ void alsa_status_add(struct bar_state *state, const char *mix, const char *card)
         gio_read = g_io_channel_unix_new(poll_array[i].fd);
         g_io_add_watch(gio_read, G_IO_IN, alsa_handle_change, alsa);
     }
+
+    alsa_create_cmds(alsa, mix, card);
 
     status_list_add(&state->status_list, &alsa->status);
 

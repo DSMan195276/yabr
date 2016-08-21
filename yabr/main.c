@@ -101,28 +101,21 @@ static i3ipcConnection *i3_mon_setup(void)
     return conn;
 }
 
-static void (*status_init_funcs[]) (i3ipcConnection *) = {
-    NULL
-};
-
 int main(int argc, char **argv)
 {
     i3ipcConnection *conn;
-    void (**setup_func) (i3ipcConnection *);
 
     bar_state.output_title = "LVDS1";
     bar_state.bar_output = lemonbar_open();
 
     conn = i3_mon_setup();
 
-    datetime_status_add(&bar_state, DATE_FORMAT, TIME_FORMAT, DATE_TIMEOUT);
+    datetime_status_add(&bar_state, DATE_FORMAT, TIME_FORMAT, DATE_TIMEOUT, DATETIME_IS_SPLIT);
     battery_status_add(&bar_state, BATTERY_USE, 10000);
     alsa_status_add(&bar_state, ALSA_MIX, ALSA_CARD);
     wireless_status_add(&bar_state, WIRELESS_IFACE);
+    tasks_status_add(&bar_state);
     mpdmon_status_add(&bar_state, MPD_SERVER, MPD_PORT, MPD_TIMEOUT);
-
-    for (setup_func = status_init_funcs; *setup_func; setup_func++)
-        (*setup_func) (conn);
 
     ws_list_refresh(&bar_state.ws_list, conn);
     set_initial_title(conn);

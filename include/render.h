@@ -8,9 +8,15 @@
 #include "flag.h"
 #include "ws.h"
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(*(arr)))
+
 /* A pair representing a color for the bar. */
 struct bar_color {
     uint32_t fore, back;
+};
+
+struct cmd_entry {
+    char *cmd;
 };
 
 /* 
@@ -25,6 +31,8 @@ struct status {
     uint32_t flags;
 
     list_node_t status_entry;
+
+    struct cmd_entry cmds[5];
 };
 
 enum status_flags {

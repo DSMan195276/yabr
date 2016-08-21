@@ -6,4 +6,5 @@ objs-y += alsa.o
 objs-y += mpd.o
 
 objs-y += wireless.o
+objs-y += tasks.o
 

@@ -8,5 +8,6 @@
 #include "wireless.h"
 #include "alsa.h"
 #include "mpd.h"
+#include "tasks.h"
 
 #endif

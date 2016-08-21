@@ -57,6 +57,7 @@
 #define DATE_FORMAT "%m-%d-%Y"
 #define TIME_FORMAT "%H:%M"
 #define DATE_TIMEOUT 30000 /* Milliseconds */
+#define DATETIME_IS_SPLIT F(DATETIME_SPLIT)
 
 #define BATTERY_USE "BAT0"
 
