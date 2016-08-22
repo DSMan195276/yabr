@@ -36,7 +36,7 @@ void status_change_text(struct status *status, const char *text)
     status->text = strdup(text);
 }
 
-static void render_color_last(struct bar_state *state)
+static void render_color_no_sep(struct bar_state *state)
 {
     fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
     state->prev_color = state->color;
@@ -64,7 +64,7 @@ static void render_color(struct bar_state *state)
         }
     }
     state->past_first_entry = 1;
-    render_color_last(state);
+    render_color_no_sep(state);
 }
 
 static void render_cmd(struct bar_state *state, int button, const char *cmd)
@@ -88,6 +88,11 @@ static void render_left_align(struct bar_state *state)
     fprintf(state->bar_output, "%%{l}");
 }
 
+static void render_center_align(struct bar_state *state)
+{
+    fprintf(state->bar_output, "%%{c}");
+}
+
 static void render_finish(struct bar_state *state)
 {
     fputc('\n', state->bar_output);
@@ -95,34 +100,55 @@ static void render_finish(struct bar_state *state)
 
     state->sep_direction = 0;
     state->past_first_entry = 0;
+    state->cur_status_color = 0;
 }
 
+static void render_single_status(struct bar_state *state, struct status *status)
+{
+    int cmd_count = 0, i;
+    if (!flag_test(&status->flags, STATUS_VISIBLE))
+        return ;
+
+    if (!status->text)
+        return ;
+
+    for (i = 0; i < ARRAY_SIZE(status->cmds); i++) {
+        if (status->cmds[i].cmd) {
+            cmd_count++;
+            render_cmd(state, i + 1, status->cmds[i].cmd);
+        }
+    }
+
+    fprintf(state->bar_output, " %s ", status->text);
+
+    for (i = 0; i < cmd_count; i++)
+        render_cmd_end(state);
+}
 
 static void status_render(struct bar_state *state)
 {
     int cur_status_color = 0;
-    struct status *status, *last_entry = list_last_entry(&state->status_list.list, struct status, status_entry);
+
+    struct status *status, *last_entry = NULL;
+
+    list_foreach_entry(&state->status_list.list, status, status_entry)
+        if (flag_test(&status->flags, STATUS_VISIBLE))
+            last_entry = status;
+
+    if (!last_entry)
+        return ;
 
     list_foreach_entry(&state->status_list.list, status, status_entry) {
-        int cmd_count = 0, i;
+        int is_last = status == last_entry;
+
         if (!flag_test(&status->flags, STATUS_VISIBLE))
             continue;
-
-        if (!status->text)
-            continue;
-
-        for (i = 0; i < ARRAY_SIZE(status->cmds); i++) {
-            if (status->cmds[i].cmd) {
-                cmd_count++;
-                render_cmd(state, i + 1, status->cmds[i].cmd);
-            }
-        }
 
         if (flag_test(&status->flags, STATUS_URGENT)) {
             state->color.fore = BAR_COLOR_STATUS_URGENT_FORE;
             state->color.back = BAR_COLOR_STATUS_URGENT_BACK;
         } else {
-            if (status == last_entry)
+            if (is_last)
                 state->color = status_last_color;
             else
                 state->color = status_colors[cur_status_color];
@@ -131,10 +157,7 @@ static void status_render(struct bar_state *state)
         }
 
         render_color(state);
-        fprintf(state->bar_output, " %s ", status->text);
-
-        for (i = 0; i < cmd_count; i++)
-            render_cmd_end(state);
+        render_single_status(state, status);
     }
 }
 
@@ -214,12 +237,26 @@ void bar_state_render(struct bar_state *state)
     state->color = def_color;
     render_color(state);
 
+    if (state->centered) {
+        render_center_align(state);
+        state->sep_direction = 1;
+        state->color.fore = BAR_COLOR_CENTERED_FORE;
+        state->color.back = BAR_COLOR_CENTERED_BACK;
+        render_color(state);
+
+        render_single_status(state, state->centered);
+
+        state->sep_direction = 0;
+        state->color = def_color;
+        render_color(state);
+    }
+
     render_right_align(state);
     status_render(state);
 
     state->color = def_color;
 
-    render_color_last(state);
+    render_color_no_sep(state);
     render_finish(state);
 }
 

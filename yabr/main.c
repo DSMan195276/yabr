@@ -20,6 +20,11 @@ struct bar_state bar_state = {
     .status_list = STATUS_LIST_INIT(bar_state.status_list),
 };
 
+void bar_render_global(void)
+{
+    bar_state_render(&bar_state);
+}
+
 static void set_window_title(const char *title)
 {
     if (bar_state.win_title)
@@ -103,6 +108,7 @@ static i3ipcConnection *i3_mon_setup(void)
 
 int main(int argc, char **argv)
 {
+    struct status **s;
     i3ipcConnection *conn;
 
     bar_state.output_title = "LVDS1";
@@ -110,12 +116,21 @@ int main(int argc, char **argv)
 
     conn = i3_mon_setup();
 
-    datetime_status_add(&bar_state, DATE_FORMAT, TIME_FORMAT, DATE_TIMEOUT, DATETIME_IS_SPLIT);
-    tasks_status_add(&bar_state);
-    battery_status_add(&bar_state, BATTERY_USE, 10000);
-    alsa_status_add(&bar_state, ALSA_MIX, ALSA_CARD);
-    wireless_status_add(&bar_state, WIRELESS_IFACE);
-    mpdmon_status_add(&bar_state, MPD_SERVER, MPD_PORT, MPD_TIMEOUT);
+    struct status *stats[] = {
+        battery_status_create(BATTERY_USE, BATTERY_TIMEOUT),
+        tasks_test_status_create(TASKS_TIMEOUT),
+        tasks_status_create(TASKS_TIMEOUT),
+        alsa_status_create(ALSA_MIX, ALSA_CARD),
+        wireless_status_create(WIRELESS_IFACE),
+        mpdmon_status_create(MPD_SERVER, MPD_PORT, MPD_TIMEOUT),
+        NULL
+    };
+
+    for (s = stats; *s; s++)
+        if (*s)
+            status_list_add(&bar_state.status_list, *s);
+
+    bar_state.centered = datetime_status_create(DATE_FORMAT " - " TIME_FORMAT, TIME_TIMEOUT);
 
     ws_list_refresh(&bar_state.ws_list, conn);
     set_initial_title(conn);

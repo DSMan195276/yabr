@@ -3,6 +3,7 @@
 
 #include "render.h"
 
-void tasks_status_add(struct bar_state *state);
+struct status *tasks_status_create(int timeout);
+struct status *tasks_test_status_create(int timeout);
 
 #endif

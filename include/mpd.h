@@ -3,6 +3,6 @@
 
 #include "render.h"
 
-void mpdmon_status_add(struct bar_state *, const char *server, int port, int timeout);
+struct status *mpdmon_status_create(const char *server, int port, int timeout);
 
 #endif

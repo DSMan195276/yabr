@@ -21,7 +21,6 @@ enum power_state {
 
 struct battery {
     struct status status;
-    struct bar_state *bar_state;
 
     char *id;
     int timeout;
@@ -107,7 +106,7 @@ static gboolean battery_check_status(gpointer data)
     struct battery *battery = data;
     battery_get_state(battery);
     battery_render(battery);
-    bar_state_render(battery->bar_state);
+    bar_render_global();
 
     return TRUE;
 }
@@ -119,25 +118,20 @@ static void battery_setup(struct battery *battery)
     battery_get_state(battery);
     battery_render(battery);
 
-    g_timeout_add(battery->timeout, battery_check_status, battery);
+    g_timeout_add_seconds(battery->timeout, battery_check_status, battery);
 }
 
-void battery_status_add(struct bar_state *state, const char *battery_id, int battery_timeout)
+struct status *battery_status_create(const char *id, int timeout)
 {
     struct battery *battery;
 
     battery = malloc(sizeof(*battery));
-
     memset(battery, 0, sizeof(*battery));
     status_init(&battery->status);
-
-    battery->id = strdup(battery_id);
-    battery->timeout = battery_timeout;
-    battery->bar_state = state;
+    battery->id = strdup(id);
+    battery->timeout = timeout;
     battery_setup(battery);
 
-    status_list_add(&state->status_list, &battery->status);
-
-    return ;
+    return &battery->status;
 }
 

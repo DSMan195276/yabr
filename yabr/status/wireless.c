@@ -29,7 +29,6 @@ enum wireless_state {
 
 struct wireless {
     struct status status;
-    struct bar_state *bar_state;
 
     char *iface;
 
@@ -185,13 +184,13 @@ static gboolean wireless_handle_netlink(GIOChannel *gio, GIOCondition condition,
 
     if (change) {
         wireless_render_status(wireless);
-        bar_state_render(wireless->bar_state);
+        bar_render_global();
     }
 
     return TRUE;
 }
 
-void wireless_status_add(struct bar_state *state, const char *ifname)
+struct status *wireless_status_create(const char *ifname)
 {
     struct wireless *wireless;
     GIOChannel *gio_read;
@@ -201,7 +200,6 @@ void wireless_status_add(struct bar_state *state, const char *ifname)
     memset(wireless, 0, sizeof(*wireless));
     status_init(&wireless->status);
 
-    wireless->bar_state = state;
     wireless->if_index = if_nametoindex(ifname);
     if (!wireless->if_index)
         goto cleanup_wireless;
@@ -222,9 +220,8 @@ void wireless_status_add(struct bar_state *state, const char *ifname)
     g_io_add_watch(gio_read, G_IO_IN, wireless_handle_netlink, wireless);
 
     fprintf(stderr, "Adding wireless status\n");
-    status_list_add(&state->status_list, &wireless->status);
 
-    return ;
+    return &wireless->status;
 
   cleanup_wireless:
     if (wireless->netlink_socket)
@@ -234,6 +231,6 @@ void wireless_status_add(struct bar_state *state, const char *ifname)
         free(wireless->iface);
 
     free(wireless);
-    return ;
+    return NULL;
 }
 

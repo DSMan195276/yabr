@@ -38,6 +38,9 @@
 #define BAR_COLOR_STATUS_URGENT_FORE COLOR_BACK
 #define BAR_COLOR_STATUS_URGENT_BACK COLOR_URGENT
 
+#define BAR_COLOR_CENTERED_FORE COLOR_BACK
+#define BAR_COLOR_CENTERED_BACK COLOR_HEAD
+
 #define BAR_DEFAULT_COLOR_BACK (0xFF1D1F21)
 #define BAR_DEFAULT_COLOR_FORE (0xFFC5C8C6)
 
@@ -59,10 +62,12 @@
 
 #define DATE_FORMAT "%m-%d-%Y"
 #define TIME_FORMAT "%H:%M"
-#define DATE_TIMEOUT 30 /* Seconds */
+#define TIME_TIMEOUT 30 /* Seconds */
+#define DATE_TIMEOUT (5 * 60) /* Seconds */
 #define DATETIME_IS_SPLIT F(DATETIME_SPLIT)
 
 #define BATTERY_USE "BAT0"
+#define BATTERY_TIMEOUT (30) /* Seconds */
 
 #define ALSA_MIX "Master"
 #define ALSA_CARD "default"
@@ -72,5 +77,7 @@
 #define MPD_TIMEOUT 5 /* Seconds */
 
 #define WIRELESS_IFACE "wlp3s0"
+
+#define TASKS_TIMEOUT (5 * 60) /* Seconds */
 
 #endif

@@ -3,10 +3,6 @@
 
 #include "render.h"
 
-enum datetime_flags {
-    DATETIME_SPLIT,
-};
-
-void datetime_status_add(struct bar_state *state, const char *datefmt, const char *timefmt, int date_timeout, int flags);
+struct status *datetime_status_create(const char *fmt, int timeout);
 
 #endif

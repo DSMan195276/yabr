@@ -20,9 +20,8 @@
 struct mpdmon {
     struct status status;
     struct mpd_connection *conn;
-    struct bar_state *bar_state;
 
-    const char *server;
+    char *server;
     int port;
     int timeout;
 };
@@ -111,13 +110,13 @@ static gboolean mpd_handle_idle(GIOChannel *gio, GIOCondition condition, gpointe
         g_timeout_add_seconds(mpdmon->timeout, mpdmon_timeout_check, mpdmon);
 
         status_change_text(&mpdmon->status, "Mpd: Disconnected");
-        bar_state_render(mpdmon->bar_state);
+        bar_render_global();
         return FALSE;
     }
 
     if ((idle & MPD_IDLE_PLAYER)) {
         mpdmon_update_status(mpdmon);
-        bar_state_render(mpdmon->bar_state);
+        bar_render_global();
     }
 
     mpd_send_idle(mpdmon->conn);
@@ -153,22 +152,21 @@ static gboolean mpdmon_timeout_check(gpointer data)
     mpdmon_connection_check_up(mpdmon);
     if (mpdmon->conn) {
         mpdmon_connection_up(mpdmon);
-        bar_state_render(mpdmon->bar_state);
+        bar_render_global();
         return FALSE;
     }
 
     return TRUE;
 }
 
-void mpdmon_status_add(struct bar_state *state, const char *server, int port, int timeout)
+struct status *mpdmon_status_create(const char *server, int port, int timeout)
 {
     struct mpdmon *mpdmon;
 
     mpdmon = malloc(sizeof(*mpdmon));
     memset(mpdmon, 0, sizeof(*mpdmon));
     status_init(&mpdmon->status);
-    mpdmon->bar_state = state;
-    mpdmon->server = server;
+    mpdmon->server = strdup(server);
     mpdmon->port = port;
     mpdmon->timeout = timeout;
 
@@ -183,6 +181,6 @@ void mpdmon_status_add(struct bar_state *state, const char *server, int port, in
         mpdmon_connection_up(mpdmon);
     }
 
-    status_list_add(&state->status_list, &mpdmon->status);
+    return &mpdmon->status;
 }
 

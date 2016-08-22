@@ -12,7 +12,6 @@
 
 struct alsa {
     struct status status;
-    struct bar_state *bar_state;
 
     snd_mixer_t *mixer;
     snd_mixer_elem_t *elem;
@@ -109,7 +108,8 @@ static gboolean alsa_handle_change(GIOChannel *gio, GIOCondition condition, gpoi
     snd_mixer_handle_events(alsa->mixer);
     alsa_set_volume_status(alsa);
 
-    bar_state_render(alsa->bar_state);
+    bar_render_global();
+
     return TRUE;
 }
 
@@ -124,7 +124,7 @@ static void alsa_create_cmds(struct alsa *alsa, const char *mix, const char *car
     alsa->status.cmds[4].cmd = strdup(buf);
 }
 
-void alsa_status_add(struct bar_state *state, const char *mix, const char *card)
+struct status *alsa_status_create(const char *mix, const char *card)
 {
     struct alsa *alsa;
     GIOChannel *gio_read;
@@ -133,12 +133,12 @@ void alsa_status_add(struct bar_state *state, const char *mix, const char *card)
     int ret, i;
 
     alsa = malloc(sizeof(*alsa));
+    memset(alsa, 0, sizeof(*alsa));
     status_init(&alsa->status);
-    alsa->bar_state = state;
 
     ret = alsa_open_mixer(alsa, card, mix);
     if (ret)
-        return ;
+        goto cleanup_alsa;
 
     alsa_set_volume_status(alsa);
 
@@ -154,8 +154,11 @@ void alsa_status_add(struct bar_state *state, const char *mix, const char *card)
 
     alsa_create_cmds(alsa, mix, card);
 
-    status_list_add(&state->status_list, &alsa->status);
+    return &alsa->status;
 
-    return ;
+  cleanup_alsa:
+    if (alsa)
+        free(alsa);
+
+    return NULL;
 }
-

@@ -74,8 +74,10 @@ struct bar_state {
     struct ws_list ws_list;
     char *win_title;
     struct status_list status_list;
+    struct status *centered;
 
     struct bar_color color;
+    int cur_status_color;
     FILE *bar_output;
     char *mode;
     const char *output_title;
@@ -86,6 +88,6 @@ struct bar_state {
 
 void bar_state_render(struct bar_state *);
 
-extern struct bar_state bar_state;
+void bar_render_global(void);
 
 #endif

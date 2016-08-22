@@ -3,6 +3,6 @@
 
 #include "render.h"
 
-void battery_status_add(struct bar_state *, const char *battery_id, int battery_timeout);
+struct status *battery_status_create(const char *battery_id, int battery_timeout);
 
 #endif

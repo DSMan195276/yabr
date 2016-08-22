@@ -4,6 +4,6 @@
 #include <stdint.h>
 #include "render.h"
 
-void wireless_status_add(struct bar_state *state, const char *ifname);
+struct status *wireless_status_create(const char *ifname);
 
 #endif

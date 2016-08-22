@@ -3,6 +3,6 @@
 
 #include "render.h"
 
-void alsa_status_add(struct bar_state *, const char *mix, const char *card);
+struct status *alsa_status_create(const char *mix, const char *card);
 
 #endif
