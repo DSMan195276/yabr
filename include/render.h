@@ -37,6 +37,7 @@ struct status {
 
 enum status_flags {
     STATUS_VISIBLE,
+    STATUS_URGENT,
 };
 
 #define STATUS_INIT(status) \

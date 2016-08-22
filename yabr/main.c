@@ -111,10 +111,10 @@ int main(int argc, char **argv)
     conn = i3_mon_setup();
 
     datetime_status_add(&bar_state, DATE_FORMAT, TIME_FORMAT, DATE_TIMEOUT, DATETIME_IS_SPLIT);
+    tasks_status_add(&bar_state);
     battery_status_add(&bar_state, BATTERY_USE, 10000);
     alsa_status_add(&bar_state, ALSA_MIX, ALSA_CARD);
     wireless_status_add(&bar_state, WIRELESS_IFACE);
-    tasks_status_add(&bar_state);
     mpdmon_status_add(&bar_state, MPD_SERVER, MPD_PORT, MPD_TIMEOUT);
 
     ws_list_refresh(&bar_state.ws_list, conn);

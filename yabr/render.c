@@ -118,12 +118,17 @@ static void status_render(struct bar_state *state)
             }
         }
 
-        if (status == last_entry)
-            state->color = status_last_color;
-        else
-            state->color = status_colors[cur_status_color];
+        if (flag_test(&status->flags, STATUS_URGENT)) {
+            state->color.fore = BAR_COLOR_STATUS_URGENT_FORE;
+            state->color.back = BAR_COLOR_STATUS_URGENT_BACK;
+        } else {
+            if (status == last_entry)
+                state->color = status_last_color;
+            else
+                state->color = status_colors[cur_status_color];
 
-        cur_status_color = (cur_status_color + 1) % STATUS_COLORS_COUNT;
+            cur_status_color = (cur_status_color + 1) % STATUS_COLORS_COUNT;
+        }
 
         render_color(state);
         fprintf(state->bar_output, " %s ", status->text);

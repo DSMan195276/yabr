@@ -35,6 +35,9 @@
 #define BAR_COLOR_MODE_FORE COLOR_FORE
 #define BAR_COLOR_MODE_BACK COLOR_SEC_B2
 
+#define BAR_COLOR_STATUS_URGENT_FORE COLOR_BACK
+#define BAR_COLOR_STATUS_URGENT_BACK COLOR_URGENT
+
 #define BAR_DEFAULT_COLOR_BACK (0xFF1D1F21)
 #define BAR_DEFAULT_COLOR_FORE (0xFFC5C8C6)
 
@@ -56,7 +59,7 @@
 
 #define DATE_FORMAT "%m-%d-%Y"
 #define TIME_FORMAT "%H:%M"
-#define DATE_TIMEOUT 30000 /* Milliseconds */
+#define DATE_TIMEOUT 30 /* Seconds */
 #define DATETIME_IS_SPLIT F(DATETIME_SPLIT)
 
 #define BATTERY_USE "BAT0"
@@ -66,7 +69,7 @@
 
 #define MPD_SERVER "127.0.0.1"
 #define MPD_PORT 6600
-#define MPD_TIMEOUT 5000 /* Milliseconds */
+#define MPD_TIMEOUT 5 /* Seconds */
 
 #define WIRELESS_IFACE "wlp3s0"
 

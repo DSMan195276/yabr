@@ -43,12 +43,7 @@ void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
         } else if (sscanf(line, "Due %d-%d-%d\n", &task->due.tm_year, &task->due.tm_mon, &task->due.tm_mday) == 3) {
             task->due.tm_year -= 1900;
             task->due.tm_mon -= 1;
-            fprintf(stderr, "Year: %d, mday: %d, mon: %d\n", task->due.tm_year, task->due.tm_mday, task->due.tm_mon);
             task->due_time = mktime(&task->due);
-            fprintf(stderr, "Year: %d, mday: %d, mon: %d\n", task->due.tm_year, task->due.tm_mday, task->due.tm_mon);
-
-            fprintf(stderr, "Test due: %s\n", ctime(&task->due_time));
-            fprintf(stderr, "Test due: %s\n", asctime(&task->due));
         }
     }
 
@@ -69,7 +64,6 @@ static void tasks_update(struct tasks *tasks)
     if (!task_due_week_count) {
         flag_clear(&tasks->status.flags, STATUS_VISIBLE);
     } else {
-        fprintf(stderr, "Tasks: %d\n", task_due_week_count);
         flag_set(&tasks->status.flags, STATUS_VISIBLE);
         snprintf(buf, sizeof(buf), "Tasks due: %d", task_due_week_count);
         status_change_text(&tasks->status, buf);
@@ -79,14 +73,13 @@ static void tasks_update(struct tasks *tasks)
     test_comming = fscanf(prog, "%d", &test_id);
     pclose(prog);
 
-    fprintf(stderr, "test_comming: %d\n", test_comming);
-
     if (test_comming != 1) {
         flag_clear(&tasks->test_status.flags, STATUS_VISIBLE);
     } else {
         struct taskwarrior_task task;
         struct timeval current_day;
         double diff_time;
+        int days;
 
         memset(&task, 0, sizeof(task));
 
@@ -99,13 +92,11 @@ static void tasks_update(struct tasks *tasks)
 
         diff_time = difftime(task.due_time, current_day.tv_sec);
 
-        fprintf(stderr, "Cur time: %s\n", ctime(&current_day.tv_sec));
-        fprintf(stderr, "diff_time: %f\n", diff_time);
-        fprintf(stderr, "diff_time / 60 / 60/ 24: %d\n", (int)ceil(diff_time / 60 / 60 / 24));
-
-        snprintf(buf, sizeof(buf), "%s: %d days", task.description, (int)ceil(diff_time / 60 / 60 / 24));
+        days = (int)ceil(diff_time / 60 / 60 / 24);
+        snprintf(buf, sizeof(buf), "%s: %d day%s", task.description, days, (days != 1)? "s": "");
 
         flag_set(&tasks->test_status.flags, STATUS_VISIBLE);
+        flag_set(&tasks->test_status.flags, STATUS_URGENT);
         status_change_text(&tasks->test_status, buf);
 
         taskwarrior_task_clear(&task);
@@ -115,6 +106,8 @@ static void tasks_update(struct tasks *tasks)
 static gboolean task_check(gpointer data)
 {
     struct tasks *tasks = data;
+
+    fprintf(stderr, "Task update\n");
 
     tasks_update(tasks);
     bar_state_render(tasks->state);
@@ -133,10 +126,10 @@ void tasks_status_add(struct bar_state *state)
 
     tasks_update(tasks);
 
-    status_list_add(&state->status_list, &tasks->status);
     status_list_add(&state->status_list, &tasks->test_status);
+    status_list_add(&state->status_list, &tasks->status);
 
     /* Check every 5 minutes */
-    g_timeout_add_seconds(60000 * 5, task_check, tasks);
+    g_timeout_add_seconds(5 * 60, task_check, tasks);
 }
 

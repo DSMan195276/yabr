@@ -52,7 +52,7 @@ static void wireless_render_status(struct wireless *wireless)
         if (!*wireless->essid) {
             snprintf(buf, sizeof(buf), "%s: %s", wireless->iface, inet_ntoa(addr));
         } else {
-            snprintf(buf, sizeof(buf), "%s: %s - %s", wireless->iface, wireless->essid, inet_ntoa(addr));
+            snprintf(buf, sizeof(buf), "%s: %s", wireless->iface, wireless->essid);
         }
         goto setup_status;
 
