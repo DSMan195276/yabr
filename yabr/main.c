@@ -117,12 +117,13 @@ int main(int argc, char **argv)
     conn = i3_mon_setup();
 
     struct status *stats[] = {
+        datetime_status_create(TIME_FORMAT, TIME_TIMEOUT),
+        datetime_status_create(DATE_FORMAT, DATE_TIMEOUT),
         battery_status_create(BATTERY_USE, BATTERY_TIMEOUT),
         tasks_test_status_create(TASKS_TIMEOUT),
         tasks_status_create(TASKS_TIMEOUT),
         alsa_status_create(ALSA_MIX, ALSA_CARD),
         wireless_status_create(WIRELESS_IFACE),
-        mpdmon_status_create(MPD_SERVER, MPD_PORT, MPD_TIMEOUT),
         NULL
     };
 
@@ -130,7 +131,7 @@ int main(int argc, char **argv)
         if (*s)
             status_list_add(&bar_state.status_list, *s);
 
-    bar_state.centered = datetime_status_create(DATE_FORMAT " - " TIME_FORMAT, TIME_TIMEOUT);
+    bar_state.centered = mpdmon_status_create(MPD_SERVER, MPD_PORT, MPD_TIMEOUT),
 
     ws_list_refresh(&bar_state.ws_list, conn);
     set_initial_title(conn);

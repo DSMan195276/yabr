@@ -64,24 +64,25 @@ static void mpdmon_update_status(struct mpdmon *mpdmon)
 
     switch (mpd_status_get_state(status)) {
     case MPD_STATE_PLAY:
-        state = "Playing";
+        state = "";
         goto make_title;
 
     case MPD_STATE_PAUSE:
-        state = "Paused";
+        state = "Paused - ";
         goto make_title;
 
     make_title:
         song_to_string(song, song_name, sizeof(song_name));
-        snprintf(buf, sizeof(buf), "Mpd: %s - %s",
+        snprintf(buf, sizeof(buf), "%s%s",
                 state,
                 song_name);
         status_change_text(&mpdmon->status, buf);
+        flag_set(&mpdmon->status.flags, STATUS_VISIBLE);
         break;
 
     case MPD_STATE_UNKNOWN:
     case MPD_STATE_STOP:
-        status_change_text(&mpdmon->status, "Mpd: Disconnected");
+        flag_clear(&mpdmon->status.flags, STATUS_VISIBLE);
         break;
     }
 
@@ -109,7 +110,7 @@ static gboolean mpd_handle_idle(GIOChannel *gio, GIOCondition condition, gpointe
         mpdmon->conn = NULL;
         g_timeout_add_seconds(mpdmon->timeout, mpdmon_timeout_check, mpdmon);
 
-        status_change_text(&mpdmon->status, "Mpd: Disconnected");
+        flag_clear(&mpdmon->status.flags, STATUS_VISIBLE);
         bar_render_global();
         return FALSE;
     }
@@ -169,13 +170,15 @@ struct status *mpdmon_status_create(const char *server, int port, int timeout)
     mpdmon->server = strdup(server);
     mpdmon->port = port;
     mpdmon->timeout = timeout;
+    mpdmon->status.cmds[0].cmd = strdup("mpc toggle");
+    mpdmon->status.cmds[2].cmd = strdup("mpc next");
 
     flag_set(&mpdmon->status.flags, STATUS_VISIBLE);
 
     mpdmon_connection_check_up(mpdmon);
 
     if (!mpdmon->conn) {
-        status_change_text(&mpdmon->status, "Mpd: Disconnected");
+        flag_clear(&mpdmon->status.flags, STATUS_VISIBLE);
         g_timeout_add_seconds(timeout, mpdmon_timeout_check, mpdmon);
     } else {
         mpdmon_connection_up(mpdmon);
