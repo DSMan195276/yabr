@@ -29,7 +29,7 @@ void taskwarrior_task_clear(struct taskwarrior_task *task)
 
 void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
 {
-    char *line;
+    char *line = NULL;
     ssize_t len;
     size_t buf_len = 0;
 
@@ -43,6 +43,9 @@ void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
             task->due_time = mktime(&task->due);
         }
     }
+
+    if (line)
+        free(line);
 
     return ;
 }
