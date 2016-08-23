@@ -237,7 +237,8 @@ void bar_state_render(struct bar_state *state)
     state->color = def_color;
     render_color(state);
 
-    if (state->centered) {
+    if (state->centered
+        && flag_test(&state->centered->flags, STATUS_VISIBLE)) {
         render_center_align(state);
         state->sep_direction = 1;
         state->color.fore = BAR_COLOR_CENTERED_FORE;
