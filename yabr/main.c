@@ -11,6 +11,7 @@
 #include "bar_config.h"
 #include "ws.h"
 #include "render.h"
+#include "outputs.h"
 #include "lemonbar.h"
 #include "status.h"
 
@@ -89,6 +90,13 @@ static void mode_change(i3ipcConnection *conn, i3ipcGenericEvent *e, gpointer da
     bar_state_render(&bar_state);
 }
 
+static void output_change(i3ipcConnection *conn, i3ipcGenericEvent *e, gpointer data)
+{
+    outputs_update(conn, &bar_state);
+
+    bar_state_render(&bar_state);
+}
+
 static i3ipcConnection *i3_mon_setup(void)
 {
     i3ipcConnection *conn;
@@ -103,6 +111,8 @@ static i3ipcConnection *i3_mon_setup(void)
 
     i3ipc_connection_on(conn, "mode", g_cclosure_new(G_CALLBACK(mode_change), NULL, NULL), NULL);
 
+    i3ipc_connection_on(conn, "output", g_cclosure_new(G_CALLBACK(output_change), NULL, NULL), NULL);
+
     return conn;
 }
 
@@ -111,8 +121,10 @@ int main(int argc, char **argv)
     struct status **s;
     i3ipcConnection *conn;
 
-    bar_state.output_title = "LVDS1";
+    /*
+    bar_state.output_title = BAR_OUTPUT;
     bar_state.bar_output = lemonbar_open();
+     */
 
     conn = i3_mon_setup();
 
@@ -133,6 +145,8 @@ int main(int argc, char **argv)
 
     bar_state.centered = mpdmon_status_create(MPD_SERVER, MPD_PORT, MPD_TIMEOUT),
 
+    outputs_update(conn, &bar_state);
+
     ws_list_refresh(&bar_state.ws_list, conn);
     set_initial_title(conn);
     bar_state_render(&bar_state);
@@ -141,7 +155,6 @@ int main(int argc, char **argv)
 
     g_object_unref(conn);
 
-    fclose(bar_state.bar_output);
     ws_list_clear(&bar_state.ws_list);
 
     return 0;

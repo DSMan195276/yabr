@@ -36,74 +36,74 @@ void status_change_text(struct status *status, const char *text)
     status->text = strdup(text);
 }
 
-static void render_color_no_sep(struct bar_state *state)
+static void render_color_no_sep(struct bar_state *state, struct bar_output *output)
 {
-    fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
+    fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
     state->prev_color = state->color;
 }
 
-static void render_color(struct bar_state *state)
+static void render_color(struct bar_state *state, struct bar_output *output)
 {
     if (BAR_USE_SEP && state->past_first_entry) {
         if (state->prev_color.back != state->color.back) {
             if (state->sep_direction == 0) {
-                fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->prev_color.back, state->color.back);
-                fprintf(state->bar_output, "%s", BAR_SEP_LEFTSIDE);
+                fprintf(output->bar, "%%{F#%08x B#%08x}", state->prev_color.back, state->color.back);
+                fprintf(output->bar, "%s", BAR_SEP_LEFTSIDE);
             } else {
-                fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->color.back, state->prev_color.back);
-                fprintf(state->bar_output, "%s", BAR_SEP_RIGHTSIDE);
+                fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.back, state->prev_color.back);
+                fprintf(output->bar, "%s", BAR_SEP_RIGHTSIDE);
             }
         } else {
             if (state->sep_direction == 0) {
-                fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
-                fprintf(state->bar_output, "%s", BAR_SEP_LEFTSIDE_SAME);
+                fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
+                fprintf(output->bar, "%s", BAR_SEP_LEFTSIDE_SAME);
             } else {
-                fprintf(state->bar_output, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
-                fprintf(state->bar_output, "%s", BAR_SEP_RIGHTSIDE_SAME);
+                fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
+                fprintf(output->bar, "%s", BAR_SEP_RIGHTSIDE_SAME);
             }
         }
     }
     state->past_first_entry = 1;
-    render_color_no_sep(state);
+    render_color_no_sep(state, output);
 }
 
-static void render_cmd(struct bar_state *state, int button, const char *cmd)
+static void render_cmd(struct bar_state *state, struct bar_output *output, int button, const char *cmd)
 {
-    fprintf(state->bar_output, "%%{A%d:%s:}", button, cmd);
+    fprintf(output->bar, "%%{A%d:%s:}", button, cmd);
 }
 
-static void render_cmd_end(struct bar_state *state)
+static void render_cmd_end(struct bar_state *state, struct bar_output *output)
 {
-    fprintf(state->bar_output, "%%{A}");
+    fprintf(output->bar, "%%{A}");
 }
 
-static void render_right_align(struct bar_state *state)
+static void render_right_align(struct bar_state *state, struct bar_output *output)
 {
-    fprintf(state->bar_output, "%%{r}");
+    fprintf(output->bar, "%%{r}");
     state->sep_direction = 1;
 }
 
-static void render_left_align(struct bar_state *state)
+static void render_left_align(struct bar_state *state, struct bar_output *output)
 {
-    fprintf(state->bar_output, "%%{l}");
+    fprintf(output->bar, "%%{l}");
 }
 
-static void render_center_align(struct bar_state *state)
+static void render_center_align(struct bar_state *state, struct bar_output *output)
 {
-    fprintf(state->bar_output, "%%{c}");
+    fprintf(output->bar, "%%{c}");
 }
 
-static void render_finish(struct bar_state *state)
+static void render_finish(struct bar_state *state, struct bar_output *output)
 {
-    fputc('\n', state->bar_output);
-    fflush(state->bar_output);
+    fputc('\n', output->bar);
+    fflush(output->bar);
 
     state->sep_direction = 0;
     state->past_first_entry = 0;
     state->cur_status_color = 0;
 }
 
-static void render_single_status(struct bar_state *state, struct status *status)
+static void render_single_status(struct bar_state *state, struct bar_output *output, struct status *status)
 {
     int cmd_count = 0, i;
     if (!flag_test(&status->flags, STATUS_VISIBLE))
@@ -115,17 +115,17 @@ static void render_single_status(struct bar_state *state, struct status *status)
     for (i = 0; i < ARRAY_SIZE(status->cmds); i++) {
         if (status->cmds[i].cmd) {
             cmd_count++;
-            render_cmd(state, i + 1, status->cmds[i].cmd);
+            render_cmd(state, output, i + 1, status->cmds[i].cmd);
         }
     }
 
-    fprintf(state->bar_output, " %s ", status->text);
+    fprintf(output->bar, " %s ", status->text);
 
     for (i = 0; i < cmd_count; i++)
-        render_cmd_end(state);
+        render_cmd_end(state, output);
 }
 
-static void status_render(struct bar_state *state)
+static void status_render(struct bar_state *state, struct bar_output *output)
 {
     int cur_status_color = 0;
 
@@ -156,12 +156,12 @@ static void status_render(struct bar_state *state)
             cur_status_color = (cur_status_color + 1) % STATUS_COLORS_COUNT;
         }
 
-        render_color(state);
-        render_single_status(state, status);
+        render_color(state, output);
+        render_single_status(state, output, status);
     }
 }
 
-static void mode_render(struct bar_state *state)
+static void mode_render(struct bar_state *state, struct bar_output *output)
 {
     struct bar_color mode_color = {
         .fore = BAR_COLOR_MODE_FORE,
@@ -172,29 +172,29 @@ static void mode_render(struct bar_state *state)
         return ;
 
     state->color = mode_color;
-    render_color(state);
+    render_color(state, output);
 
-    fprintf(state->bar_output, " %s ", state->mode);
+    fprintf(output->bar, " %s ", state->mode);
 }
 
-static void title_render(struct bar_state *state)
+static void title_render(struct bar_state *state, struct bar_output *output)
 {
     state->color.fore = BAR_COLOR_TITLE_FORE;
     state->color.back = BAR_COLOR_TITLE_BACK;
-    render_color(state);
-    fprintf(state->bar_output, " %s ", state->win_title);
+    render_color(state, output);
+    fprintf(output->bar, " %s ", state->win_title);
 }
 
-static void ws_list_render(struct bar_state *state)
+static void ws_list_render(struct bar_state *state, struct bar_output *output)
 {
     char cmdbuf[128];
 
-    render_cmd(state, 4, "i3-msg workspace prev");
-    render_cmd(state, 5, "i3-msg workspace next");
+    render_cmd(state, output, 4, "i3-msg workspace prev");
+    render_cmd(state, output, 5, "i3-msg workspace next");
 
     struct ws *ws;
     list_foreach_entry(&state->ws_list.list, ws, ws_entry) {
-        if (strcmp(ws->output, state->output_title) != 0)
+        if (strcmp(ws->output, output->name) != 0)
             continue;
 
         if (flag_test(&ws->flags, WS_URGENT)) {
@@ -210,54 +210,68 @@ static void ws_list_render(struct bar_state *state)
 
         snprintf(cmdbuf, sizeof(cmdbuf), "i3-msg workspace %s", ws->name);
 
-        render_cmd(state, 1, cmdbuf);
-        render_color(state);
+        render_cmd(state, output, 1, cmdbuf);
+        render_color(state, output);
 
-        fprintf(state->bar_output, " %s ", ws->name);
+        fprintf(output->bar, " %s ", ws->name);
 
-        render_cmd_end(state);
+        render_cmd_end(state, output);
     }
 
-    render_cmd_end(state);
-    render_cmd_end(state);
+    render_cmd_end(state, output);
+    render_cmd_end(state, output);
 }
 
-void bar_state_render(struct bar_state *state)
+/* 
+ * Note - internal bar state is reused across multiple outputs. This is fine
+ * because the bar is already left in the same state at the end of a render
+ */
+static void bar_state_render_output(struct bar_state *state, struct bar_output *output)
 {
     struct bar_color def_color = {
         .fore = COLOR_FORE,
         .back = COLOR_BACK
     };
 
-    render_left_align(state);
-    ws_list_render(state);
-    mode_render(state);
-    title_render(state);
+    render_left_align(state, output);
+    ws_list_render(state, output);
+    mode_render(state, output);
+    title_render(state, output);
 
     state->color = def_color;
-    render_color(state);
+    render_color(state, output);
 
     if (state->centered
         && flag_test(&state->centered->flags, STATUS_VISIBLE)) {
-        render_center_align(state);
+        render_center_align(state, output);
         state->sep_direction = 1;
         state->color.fore = BAR_COLOR_CENTERED_FORE;
         state->color.back = BAR_COLOR_CENTERED_BACK;
-        render_color(state);
+        render_color(state, output);
 
-        render_single_status(state, state->centered);
+        render_single_status(state, output, state->centered);
 
         state->sep_direction = 0;
         state->color = def_color;
-        render_color(state);
+        render_color(state, output);
     }
 
-    render_right_align(state);
-    status_render(state);
+    render_right_align(state, output);
+    status_render(state, output);
 
     state->color = def_color;
 
-    render_color_no_sep(state);
-    render_finish(state);
+    render_color_no_sep(state, output);
+    render_finish(state, output);
+}
+
+void bar_state_render(struct bar_state *state)
+{
+    int i;
+
+    for (i = 0; i < state->output_count; i++)
+        bar_state_render_output(state, state->outputs + i);
+
+    return ;
 }
 

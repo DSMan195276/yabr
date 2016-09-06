@@ -122,6 +122,9 @@ static void alsa_create_cmds(struct alsa *alsa, const char *mix, const char *car
 
     snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" 1%%-", card, mix);
     alsa->status.cmds[4].cmd = strdup(buf);
+
+    snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" toggle", card, mix);
+    alsa->status.cmds[0].cmd = strdup(buf);
 }
 
 struct status *alsa_status_create(const char *mix, const char *card)

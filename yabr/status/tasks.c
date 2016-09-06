@@ -35,7 +35,7 @@ void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
 
     while ((len = getline(&line, &buf_len, file)) != -1) {
         char buf[128];
-        if (sscanf(line, "Description %s\n", buf) == 1) {
+        if (sscanf(line, "Description %[^\n]", buf) == 1) {
             task->description = strdup(buf);
         } else if (sscanf(line, "Due %d-%d-%d\n", &task->due.tm_year, &task->due.tm_mon, &task->due.tm_mday) == 3) {
             task->due.tm_year -= 1900;

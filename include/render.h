@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "bar_config.h"
 #include "list.h"
 #include "flag.h"
 #include "ws.h"
@@ -67,6 +68,13 @@ static inline void status_list_init(struct status_list *status)
 void status_change_text(struct status *, const char *text);
 void status_list_add(struct status_list *, struct status *);
 
+struct bar_output {
+    FILE *bar;
+    char *name;
+
+    int x, y, width, height;
+};
+
 /*
  * Holds all the colective information on the state of the bar.
  */
@@ -78,9 +86,10 @@ struct bar_state {
 
     struct bar_color color;
     int cur_status_color;
-    FILE *bar_output;
     char *mode;
-    const char *output_title;
+
+    int output_count;
+    struct bar_output outputs[BAR_MAX_OUTPUTS];
 
     struct bar_color prev_color;
     int sep_direction, past_first_entry;

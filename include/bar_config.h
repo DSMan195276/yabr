@@ -53,7 +53,7 @@
 #define BAR_SEP_LEFTSIDE_SAME ""
 
 #define LEMONBAR_FONT "-xos4-terminesspowerline-medium-r-normal--12-120-72-72-c-60-iso10646-1"
-#define LEMONBAR_GEOMETRY "x15"
+//#define LEMONBAR_GEOMETRY "x15+1600+0"
 
 #define BAR_COLOR_DATE_FORE COLOR_FORE
 #define BAR_COLOR_DATE_BACK COLOR_SEC_B1
@@ -79,5 +79,9 @@
 #define WIRELESS_IFACE "wlp3s0"
 
 #define TASKS_TIMEOUT (5 * 60) /* Seconds */
+
+#define BAR_OUTPUT "VGA1"
+
+#define BAR_MAX_OUTPUTS 6
 
 #endif

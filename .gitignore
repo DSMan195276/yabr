@@ -1,0 +1,6 @@
+*.o
+*.d
+bin
+cscope.files
+cscope.out
+

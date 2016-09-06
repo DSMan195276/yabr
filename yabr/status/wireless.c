@@ -116,6 +116,8 @@ static int wireless_get_settings(struct wireless *wireless)
 
             if (ioctl(wireless->netlink_socket, SIOCGIWESSID, &req) < 0)
                 wireless->essid[0] = '\0';
+            else
+                wireless->essid[req.u.essid.length] = '\0';
 
             break;
         }
