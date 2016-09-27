@@ -23,7 +23,7 @@ static void lemonbar_start(struct bar_output *output)
     sprintf(fore, "#%08x", BAR_DEFAULT_COLOR_FORE);
     sprintf(back, "#%08x", BAR_DEFAULT_COLOR_BACK);
 
-    sprintf(geometry, "%dx15+%d+0", output->width, output->x);
+    sprintf(geometry, "%dx14+%d+0", output->width, output->x);
 
     snprintf(prog_string, sizeof(prog_string),
             "lemonbar -a 20 -g %s -f " LEMONBAR_FONT " -F%s -B%s 2>./bar_stderr.txt | sh >/dev/null",
@@ -69,7 +69,7 @@ static int outputs_compare(GSList *list, struct bar_state *state)
             break;
         }
 
-        if (i < state->output_count)
+        if (i == state->output_count)
             return 1;
     }
 
