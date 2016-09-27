@@ -131,8 +131,9 @@ int main(int argc, char **argv)
     struct status *stats[] = {
         datetime_status_create(TIME_FORMAT, TIME_TIMEOUT),
         datetime_status_create(DATE_FORMAT, DATE_TIMEOUT),
+        mail_status_create(MAIL_NAME, MAIL_DIR, MAIL_TIMEOUT),
         battery_status_create(BATTERY_USE, BATTERY_TIMEOUT),
-        tasks_test_status_create(TASKS_TIMEOUT),
+        //tasks_test_status_create(TASKS_TIMEOUT),
         tasks_status_create(TASKS_TIMEOUT),
         alsa_status_create(ALSA_MIX, ALSA_CARD),
         wireless_status_create(WIRELESS_IFACE),

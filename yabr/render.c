@@ -141,9 +141,6 @@ static void status_render(struct bar_state *state, struct bar_output *output)
     list_foreach_entry(&state->status_list.list, status, status_entry) {
         int is_last = status == last_entry;
 
-        if (!flag_test(&status->flags, STATUS_VISIBLE))
-            continue;
-
         if (flag_test(&status->flags, STATUS_URGENT)) {
             state->color.fore = BAR_COLOR_STATUS_URGENT_FORE;
             state->color.back = BAR_COLOR_STATUS_URGENT_BACK;
@@ -157,6 +154,10 @@ static void status_render(struct bar_state *state, struct bar_output *output)
         }
 
         render_color(state, output);
+
+        if (!flag_test(&status->flags, STATUS_VISIBLE))
+            continue;
+
         render_single_status(state, output, status);
     }
 }
