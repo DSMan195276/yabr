@@ -8,3 +8,5 @@ objs-y += mpd.o
 objs-y += wireless.o
 objs-y += tasks.o
 
+objs-y += mail.o
+
