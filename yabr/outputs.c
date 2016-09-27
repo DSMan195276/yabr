@@ -11,7 +11,6 @@
 #include "bar_config.h"
 #include "ws.h"
 #include "render.h"
-#include "lemonbar.h"
 #include "status.h"
 
 static void lemonbar_start(struct bar_output *output)

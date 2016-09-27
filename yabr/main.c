@@ -12,7 +12,6 @@
 #include "ws.h"
 #include "render.h"
 #include "outputs.h"
-#include "lemonbar.h"
 #include "status.h"
 
 struct bar_state bar_state = {
@@ -120,11 +119,6 @@ int main(int argc, char **argv)
 {
     struct status **s;
     i3ipcConnection *conn;
-
-    /*
-    bar_state.output_title = BAR_OUTPUT;
-    bar_state.bar_output = lemonbar_open();
-     */
 
     conn = i3_mon_setup();
 
