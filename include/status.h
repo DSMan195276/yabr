@@ -9,5 +9,6 @@
 #include "alsa.h"
 #include "mpd.h"
 #include "tasks.h"
+#include "mail.h"
 
 #endif
