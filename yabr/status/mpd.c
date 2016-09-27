@@ -115,7 +115,12 @@ static gboolean mpd_handle_idle(GIOChannel *gio, GIOCondition condition, gpointe
         return FALSE;
     }
 
-    if ((idle & MPD_IDLE_PLAYER)) {
+    /*
+     * We check for MPD_IDLE_QUEUE as well as MPD_IDLE_PLAYER because the name
+     * of the current song may have changed. mopidy sends MPD_IDLE_QUEUE when
+     * that happens, and no MPD_IDLE_PLAYER.
+     */
+    if (idle & MPD_IDLE_PLAYER || idle & MPD_IDLE_QUEUE) {
         mpdmon_update_status(mpdmon);
         bar_render_global();
     }
