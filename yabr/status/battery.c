@@ -8,6 +8,7 @@
 #include <glib/gprintf.h>
 
 #include "status.h"
+#include "status_desc.h"
 #include "render.h"
 #include "battery.h"
 #include "bar_config.h"
@@ -121,7 +122,7 @@ static void battery_setup(struct battery *battery)
     g_timeout_add_seconds(battery->timeout, battery_check_status, battery);
 }
 
-struct status *battery_status_create(const char *id, int timeout)
+static struct status *battery_status_create(const char *id, int timeout)
 {
     struct battery *battery;
 
@@ -134,4 +135,21 @@ struct status *battery_status_create(const char *id, int timeout)
 
     return &battery->status;
 }
+
+static struct status *battery_create(struct status_config_item *list)
+{
+    const char *id = status_config_get_str(list, "id");
+    int timeout = status_config_get_int(list, "timeout");
+    return battery_status_create(id, timeout);
+}
+
+const struct status_description battery_status_description = {
+    .name = "battery",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_STR("id", "BAT0"),
+        STATUS_CONFIG_ITEM_INT("timeout", 60 * 5),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = battery_create,
+};
 

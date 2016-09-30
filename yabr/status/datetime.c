@@ -9,6 +9,8 @@
 
 #include "render.h"
 #include "bar_config.h"
+#include "config.h"
+#include "status_desc.h"
 #include "datetime.h"
 
 struct datetime {
@@ -51,7 +53,7 @@ static void datetime_setup(struct datetime *datetime)
     g_timeout_add_seconds(datetime->timeout, time_change, datetime);
 }
 
-struct status *datetime_status_create(const char *fmt, int timeout)
+static struct status *datetime_status_create(const char *fmt, int timeout)
 {
     struct datetime *datetime;
 
@@ -65,4 +67,27 @@ struct status *datetime_status_create(const char *fmt, int timeout)
 
     return &datetime->status;
 }
+
+static struct status *datetime_create(struct status_config_item *list)
+{
+    const char *fmt = status_config_get_str(list, "format");
+    int timeout = status_config_get_int(list, "timeout");
+
+    if (!fmt) {
+        dbgprintf("datetime: Error, format is empty\n");
+        return NULL;
+    }
+
+    return datetime_status_create(fmt, timeout);
+}
+
+const struct status_description datetime_status_description = {
+    .name = "datetime",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_STR("format", NULL),
+        STATUS_CONFIG_ITEM_INT("timeout", 60),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = datetime_create,
+};
 

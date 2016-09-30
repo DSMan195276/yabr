@@ -2,7 +2,8 @@
 #define INCLUDE_ALSA_H
 
 #include "render.h"
+#include "status_desc.h"
 
-struct status *alsa_status_create(const char *mix, const char *card);
+extern const struct status_description alsa_status_description;
 
 #endif

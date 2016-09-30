@@ -2,7 +2,8 @@
 #define INCLUDE_BATTERY_H
 
 #include "render.h"
+#include "status_desc.h"
 
-struct status *battery_status_create(const char *battery_id, int battery_timeout);
+extern const struct status_description battery_status_description;
 
 #endif

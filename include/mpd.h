@@ -2,7 +2,8 @@
 #define INCLUDE_MPD_H
 
 #include "render.h"
+#include "status_desc.h"
 
-struct status *mpdmon_status_create(const char *server, int port, int timeout);
+extern const struct status_description mpdmon_status_description;
 
 #endif

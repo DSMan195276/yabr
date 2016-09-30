@@ -2,7 +2,8 @@
 #define INCLUDE_DATETIME_H
 
 #include "render.h"
+#include "status_desc.h"
 
-struct status *datetime_status_create(const char *fmt, int timeout);
+extern const struct status_description datetime_status_description;
 
 #endif

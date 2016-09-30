@@ -11,6 +11,7 @@
 #include "bar_config.h"
 #include "ws.h"
 #include "render.h"
+#include "config.h"
 #include "status.h"
 
 static void lemonbar_start(struct bar_output *output)
@@ -25,10 +26,10 @@ static void lemonbar_start(struct bar_output *output)
     sprintf(geometry, "%dx14+%d+0", output->width, output->x);
 
     snprintf(prog_string, sizeof(prog_string),
-            "lemonbar -a 20 -g %s -f " LEMONBAR_FONT " -F%s -B%s 2>./bar_stderr.txt | sh >/dev/null",
+            "lemonbar -a 20 -g %s -f " LEMONBAR_FONT " -F%s -B%s | sh >/dev/null",
             geometry, fore, back);
 
-    fprintf(stderr, "Output: %s, lemonbar: %s\n", output->name, prog_string);
+    dbgprintf("Output: %s, lemonbar: %s\n", output->name, prog_string);
 
     output->bar = popen(prog_string, "w");
 
@@ -47,7 +48,7 @@ static int outputs_compare(GSList *list, struct bar_state *state)
     for (; list; list = list->next) {
         i3ipcOutputReply *reply = list->data;
 
-        fprintf(stderr, "output: %s, active: %d\n", reply->name, reply->active);
+        dbgprintf("output: %s, active: %d\n", reply->name, reply->active);
 
         if (!reply->active)
             continue;
@@ -72,7 +73,7 @@ static int outputs_compare(GSList *list, struct bar_state *state)
             return 1;
     }
 
-    fprintf(stderr, "count: %d, list: %p\n", count, list);
+    dbgprintf("count: %d, list: %p\n", count, list);
 
     if (count != state->output_count || list)
         return 1;
@@ -106,7 +107,7 @@ static void outputs_load(struct bar_state *state, GSList *outputs)
             continue;
 
         if (count == ARRAY_SIZE(state->outputs)) {
-            fprintf(stderr, "Error! Too many outputs, max: %zd\n", ARRAY_SIZE(state->outputs));
+            dbgprintf("Error! Too many outputs, max: %zd\n", ARRAY_SIZE(state->outputs));
             exit(EXIT_FAILURE);
         }
 
@@ -117,12 +118,12 @@ static void outputs_load(struct bar_state *state, GSList *outputs)
 
         output->name = strdup(reply->name);
 
-        fprintf(stderr, "Adding output: %s\n", output->name);
-        fprintf(stderr, "At: %dx%d+%d+%d\n", output->width, output->height, output->x, output->y);
+        dbgprintf("Adding output: %s\n", output->name);
+        dbgprintf("At: %dx%d+%d+%d\n", output->width, output->height, output->x, output->y);
 
         lemonbar_start(output);
 
-        fprintf(stderr, "lemonbar running on %s\n", output->name);
+        dbgprintf("lemonbar running on %s\n", output->name);
 
         count++;
     }
@@ -134,16 +135,16 @@ void outputs_update(i3ipcConnection *conn, struct bar_state *state)
 {
     GSList *outputs = i3ipc_connection_get_outputs(conn, NULL);
 
-    fprintf(stderr, "Outputs update..\n");
+    dbgprintf("Outputs update..\n");
 
     if (!outputs)
         return ;
 
-    fprintf(stderr, "Outputs valid.\n");
+    dbgprintf("Outputs valid.\n");
     if (outputs_compare(outputs, state) == 0)
         goto cleanup_outputs;
 
-    fprintf(stderr, "Outputs different.\n");
+    dbgprintf("Outputs different.\n");
 
     outputs_clear(state);
     outputs_load(state, outputs);

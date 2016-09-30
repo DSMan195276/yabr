@@ -2,7 +2,8 @@
 #define INCLUDE_MAIL_H
 
 #include "render.h"
+#include "status_desc.h"
 
-struct status *mail_status_create(const char *name, const char *mail_dir, int timeout);
+extern const struct status_description mail_status_description;
 
 #endif

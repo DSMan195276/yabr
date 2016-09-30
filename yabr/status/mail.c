@@ -11,6 +11,8 @@
 
 #include "render.h"
 #include "bar_config.h"
+#include "config.h"
+#include "status_desc.h"
 #include "mail.h"
 
 struct mail {
@@ -36,7 +38,7 @@ static int count_new_mail(const char *mail_dir)
     m = popen(exe, "r");
 
     fscanf(m, "%d", &count);
-    fprintf(stderr, "New mail %s count: %d\n", mail_dir, count);
+    dbgprintf("New mail %s count: %d\n", mail_dir, count);
 
     pclose(m);
 
@@ -75,11 +77,16 @@ static gboolean mail_check_inotify(GIOChannel *gio, GIOCondition condition, gpoi
 
     len = read(mail->inotifyfd, buf, sizeof(buf));
 
+    /* 
+     * Note: Code below processes through each inotify event, but since we're
+     * only watching one file we don't actually care about the events. the
+     * `read` call is still necessary to clear the buffer however.
+     */
     for (event = (struct inotify_event *)buf;
          (char *)event < buf + len;
          event = (struct inotify_event *)((char *)event + sizeof(*event) + event->len)) {
         if (event->len)
-            fprintf(stderr, "Event name: %s\n", event->name);
+            dbgprintf("mail: Event name: %s\n", event->name);
     }
 
     if (mail_update(mail))
@@ -88,17 +95,7 @@ static gboolean mail_check_inotify(GIOChannel *gio, GIOCondition condition, gpoi
     return TRUE;
 }
 
-static gboolean mail_check(gpointer data)
-{
-    struct mail *mail = data;
-
-    if (mail_update(mail))
-        bar_render_global();
-
-    return TRUE;
-}
-
-struct status *mail_status_create(const char *name, const char *mail_dir, int timeout)
+static struct status *mail_status_create(const char *name, const char *mail_dir)
 {
     struct mail *mail;
     GIOChannel *gio_read;
@@ -112,21 +109,42 @@ struct status *mail_status_create(const char *name, const char *mail_dir, int ti
 
     mail_update(mail);
 
-    /* Fallback to poll if inotify doesn't work */
-    if (mail->inotifyfd < 0) {
-        g_timeout_add_seconds(timeout, mail_check, mail);
-    } else {
-        char dir[PATH_MAX];
-        snprintf(dir, sizeof(dir), "%s/new", mail_dir);
+    char dir[PATH_MAX];
+    snprintf(dir, sizeof(dir), "%s/new", mail_dir);
 
-        fprintf(stderr, "inotify on %s\n", dir);
+    inotify_add_watch(mail->inotifyfd, dir, IN_CREATE | IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY | IN_DELETE);
 
-        inotify_add_watch(mail->inotifyfd, dir, IN_CREATE | IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY);
-
-        gio_read = g_io_channel_unix_new(mail->inotifyfd);
-        g_io_add_watch(gio_read, G_IO_IN, mail_check_inotify, mail);
-    }
+    gio_read = g_io_channel_unix_new(mail->inotifyfd);
+    g_io_add_watch(gio_read, G_IO_IN, mail_check_inotify, mail);
 
     return &mail->status;
 }
+
+static struct status *mail_create(struct status_config_item *list)
+{
+    const char *name = status_config_get_str(list, "name");
+    const char *maildir = status_config_get_str(list, "maildir");
+
+    if (!name) {
+        dbgprintf("mail: Error, name is empty\n");
+        return NULL;
+    }
+
+    if (!maildir) {
+        dbgprintf("mail: Error, maildir is empty\n");
+        return NULL;
+    }
+
+    return mail_status_create(name, maildir);
+}
+
+const struct status_description mail_status_description = {
+    .name = "mail",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_STR("name", "Gmail"),
+        STATUS_CONFIG_ITEM_STR("maildir", "/mnt/data/mail/Inbox"),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = mail_create,
+};
 

@@ -14,6 +14,9 @@
 #include "status.h"
 #include "render.h"
 #include "bar_config.h"
+#include "config.h"
+#include "status_desc.h"
+#include "mpd.h"
 
 /* Note: Some things start as 'modmon' instead of 'mpd' to avoid name conflicts */
 
@@ -51,16 +54,11 @@ static void mpdmon_update_status(struct mpdmon *mpdmon)
     struct mpd_status *status;
     const char *state;
 
-    fprintf(stderr, "Mpd status update");
-
     status = mpd_run_status(mpdmon->conn);
-    fprintf(stderr, "Status: %p\n", status);
     if (!status)
         goto cleanup_status;
 
     song = mpd_run_current_song(mpdmon->conn);
-
-    fprintf(stderr, "State: %d\n", mpd_status_get_state(status));
 
     switch (mpd_status_get_state(status)) {
     case MPD_STATE_PLAY:
@@ -78,11 +76,13 @@ static void mpdmon_update_status(struct mpdmon *mpdmon)
                 song_name);
         status_change_text(&mpdmon->status, buf);
         flag_set(&mpdmon->status.flags, STATUS_VISIBLE);
+        dbgprintf("mpd: status: %s\n", buf);
         break;
 
     case MPD_STATE_UNKNOWN:
     case MPD_STATE_STOP:
         flag_clear(&mpdmon->status.flags, STATUS_VISIBLE);
+        dbgprintf("mpd: Unknown status\n");
         break;
     }
 
@@ -102,8 +102,6 @@ static gboolean mpd_handle_idle(GIOChannel *gio, GIOCondition condition, gpointe
     int idle;
 
     idle = mpd_recv_idle(mpdmon->conn, false);
-
-    fprintf(stderr, "MPD idle: %d\n", idle);
 
     if (idle == 0) {
         mpd_connection_free(mpdmon->conn);
@@ -165,7 +163,7 @@ static gboolean mpdmon_timeout_check(gpointer data)
     return TRUE;
 }
 
-struct status *mpdmon_status_create(const char *server, int port, int timeout)
+static struct status *mpdmon_status_create(const char *server, int port, int timeout)
 {
     struct mpdmon *mpdmon;
 
@@ -191,4 +189,29 @@ struct status *mpdmon_status_create(const char *server, int port, int timeout)
 
     return &mpdmon->status;
 }
+
+static struct status *mpdmon_create(struct status_config_item *list)
+{
+    const char *server = status_config_get_str(list, "server");
+    int port = status_config_get_int(list, "port");
+    int timeout = status_config_get_int(list, "timeout");
+
+    if (!server) {
+        dbgprintf("mpd: Error, server is empty\n");
+        return NULL;
+    }
+
+    return mpdmon_status_create(server, port, timeout);
+}
+
+const struct status_description mpdmon_status_description = {
+    .name = "mpd",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_STR("server", "127.0.0.1"),
+        STATUS_CONFIG_ITEM_INT("port", 6600),
+        STATUS_CONFIG_ITEM_INT("timeout", 60),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = mpdmon_create,
+};
 

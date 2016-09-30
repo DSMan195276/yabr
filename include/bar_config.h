@@ -80,7 +80,7 @@
 
 #define TASKS_TIMEOUT (5 * 60) /* Seconds */
 
-#define MAIL_NAME "GMail"
+#define MAIL_NAME "Gmail"
 #define MAIL_DIR "/mnt/data/mail/Inbox"
 #define MAIL_TIMEOUT (5 * 60) /* Seconds */
 

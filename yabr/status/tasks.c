@@ -10,6 +10,7 @@
 
 #include "render.h"
 #include "bar_config.h"
+#include "status_desc.h"
 #include "tasks.h"
 
 struct tasks {
@@ -130,7 +131,7 @@ static gboolean task_test_check(gpointer data)
     return TRUE;
 }
 
-struct status *tasks_status_create(int timeout)
+static struct status *tasks_status_create(int timeout)
 {
     struct tasks *tasks;
 
@@ -145,7 +146,7 @@ struct status *tasks_status_create(int timeout)
     return &tasks->status;
 }
 
-struct status *tasks_test_status_create(int timeout)
+static struct status *tasks_test_status_create(int timeout)
 {
     struct tasks *tasks;
 
@@ -159,4 +160,18 @@ struct status *tasks_test_status_create(int timeout)
 
     return &tasks->status;
 }
+
+static struct status *tasks_create(struct status_config_item *list)
+{
+    return tasks_status_create(status_config_get_int(list, "timeout"));
+}
+
+const struct status_description tasks_status_description = {
+    .name = "tasks",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_INT("timeout", 60),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = tasks_create,
+};
 

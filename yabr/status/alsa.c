@@ -7,7 +7,9 @@
 #include <alsa/asoundlib.h>
 
 #include "status.h"
+#include "status_desc.h"
 #include "render.h"
+#include "config.h"
 #include "bar_config.h"
 
 struct alsa {
@@ -61,6 +63,14 @@ static int alsa_open_mixer(struct alsa *alsa, const char *card, const char *sele
         snd_mixer_close(alsa->mixer);
 
     return ret;
+}
+
+static void alsa_close_mixer(struct alsa *alsa)
+{
+    if (alsa->mixer) {
+        snd_mixer_close(alsa->mixer);
+        alsa->mixer = NULL;
+    }
 }
 
 static long alsa_get_volume(struct alsa *alsa)
@@ -127,7 +137,7 @@ static void alsa_create_cmds(struct alsa *alsa, const char *mix, const char *car
     alsa->status.cmds[0].cmd = strdup(buf);
 }
 
-struct status *alsa_status_create(const char *mix, const char *card)
+static struct status *alsa_status_create(const char *mix, const char *card)
 {
     struct alsa *alsa;
     GIOChannel *gio_read;
@@ -145,6 +155,12 @@ struct status *alsa_status_create(const char *mix, const char *card)
 
     alsa_set_volume_status(alsa);
 
+    /* 
+     * For those confused, snd_mixer gives us a list of file descriptors to
+     * poll on, in `struct pollfd` format. We get these file descriptors, and
+     * then pass them to g_io_channel_unix_new to make the main loop wait on
+     * them
+     */
     poll_size = sizeof(*poll_array) * snd_mixer_poll_descriptors_count(alsa->mixer);
     poll_array = alloca(poll_size);
 
@@ -165,3 +181,32 @@ struct status *alsa_status_create(const char *mix, const char *card)
 
     return NULL;
 }
+
+static struct status *alsa_create(struct status_config_item *list)
+{
+    const char *mix = status_config_get_str(list, "mixer");
+    const char *card = status_config_get_str(list, "card");
+
+    if (!mix) {
+        dbgprintf("alsa: Error, mixer is empty\n");
+        return NULL;
+    }
+
+    if (!card) {
+        dbgprintf("alsa: Error, card is empty\n");
+        return NULL;
+    }
+
+    return alsa_status_create(mix, card);
+}
+
+const struct status_description alsa_status_description = {
+    .name = "alsa",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_STR("mixer", "master"),
+        STATUS_CONFIG_ITEM_STR("card", "default"),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = alsa_create,
+};
+

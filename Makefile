@@ -172,6 +172,13 @@ $(objtree)/.%.d: $(srctree)/%.c
 	@$(call mecho," CCDEP   $@","$(CC) -MM -MP -MF $@ $(CPPFLAGS) $(CFLAGS) $< -MT $(objtree)/$*.o -MT $@")
 	$(Q)$(CC) -MM -MP -MF $@ $(CPPFLAGS) $(CFLAGS) $< -MT $(objtree)/$*.o -MT $@
 
+$(objtree)/%.c: $(srctree)/%.l
+	@$(call mecho," LEX     $@","$(LEX) -o $@ $<")
+	$(Q)$(LEX) $(LFLAGS) -o $@ $<
+
+$(srctree)/%.tab.c $(srctree)/%.tab.h: $(srctree)/%.y
+	@$(call mecho," YACC    $@","$(YACC) $(YFLAGS) -d -b $* $<")
+	$(Q)$(YACC) $(YFLAGS) --verbose -d -b $* $<
 
 DEP_LIST := $(foreach dep,$(DEPS),$(dir $(dep)).$(notdir $(dep)))
 DEP_LIST := $(DEP_LIST:.o=.d)

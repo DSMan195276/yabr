@@ -19,6 +19,8 @@
 
 #include "status.h"
 #include "render.h"
+#include "config.h"
+#include "status_desc.h"
 #include "bar_config.h"
 
 enum wireless_state {
@@ -53,10 +55,12 @@ static void wireless_render_status(struct wireless *wireless)
         } else {
             snprintf(buf, sizeof(buf), "%s: %s", wireless->iface, wireless->essid);
         }
+        dbgprintf("wireless: Got IP: %s\n", buf);
         goto setup_status;
 
     case NO_IP:
         snprintf(buf, sizeof(buf), "%s: Disconnected", wireless->iface);
+        dbgprintf("wireless: Disconnected.\n");
         goto setup_status;
 
     setup_status:
@@ -102,12 +106,8 @@ static int wireless_get_settings(struct wireless *wireless)
 
             sa = (struct sockaddr_in *)cur_addr->ifa_addr;
 
-            fprintf(stderr, "Family: %d\n", cur_addr->ifa_addr->sa_family);
-
             wireless->ip = ntohl(sa->sin_addr.s_addr);
             wireless->state = HAS_IP;
-
-            fprintf(stderr, "%s has ip 0x%08x: %s\n", cur_addr->ifa_name, wireless->ip, inet_ntoa(sa->sin_addr));
 
             memset(&req, 0, sizeof(req));
             strcpy(req.ifr_name, wireless->iface);
@@ -173,7 +173,7 @@ static gboolean wireless_handle_netlink(GIOChannel *gio, GIOCondition condition,
 
     nlh = (struct nlmsghdr *)buffer;
 
-    for (;NLMSG_OK(nlh, len) && (nlh->nlmsg_type != NLMSG_DONE); nlh = NLMSG_NEXT(nlh, len)) {
+    for (; NLMSG_OK(nlh, len) && (nlh->nlmsg_type != NLMSG_DONE); nlh = NLMSG_NEXT(nlh, len)) {
         if (nlh->nlmsg_type == RTM_NEWADDR || nlh->nlmsg_type == RTM_DELADDR) {
             struct ifaddrmsg *ifa = (struct ifaddrmsg *)NLMSG_DATA(nlh);
 
@@ -192,7 +192,7 @@ static gboolean wireless_handle_netlink(GIOChannel *gio, GIOCondition condition,
     return TRUE;
 }
 
-struct status *wireless_status_create(const char *ifname)
+static struct status *wireless_status_create(const char *ifname)
 {
     struct wireless *wireless;
     GIOChannel *gio_read;
@@ -221,8 +221,6 @@ struct status *wireless_status_create(const char *ifname)
     gio_read = g_io_channel_unix_new(wireless->netlink_socket);
     g_io_add_watch(gio_read, G_IO_IN, wireless_handle_netlink, wireless);
 
-    fprintf(stderr, "Adding wireless status\n");
-
     return &wireless->status;
 
   cleanup_wireless:
@@ -235,4 +233,25 @@ struct status *wireless_status_create(const char *ifname)
     free(wireless);
     return NULL;
 }
+
+static struct status *wireless_create(struct status_config_item *list)
+{
+    const char *iface = status_config_get_str(list, "iface");
+
+    if (!iface) {
+        dbgprintf("wlreless: Error, iface is empty\n");
+        return NULL;
+    }
+
+    return wireless_status_create(iface);
+}
+
+const struct status_description wireless_status_description = {
+    .name = "wireless",
+    .items = (struct status_config_item []) {
+        STATUS_CONFIG_ITEM_STR("iface", "wlp3s0"),
+        STATUS_CONFIG_END(),
+    },
+    .status_create = wireless_create,
+};
 

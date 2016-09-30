@@ -28,6 +28,11 @@ void status_list_add(struct status_list *status_list, struct status *status)
     list_add(&status_list->list, &status->status_entry);
 }
 
+void status_list_add_tail(struct status_list *status_list, struct status *status)
+{
+    list_add_tail(&status_list->list, &status->status_entry);
+}
+
 void status_change_text(struct status *status, const char *text)
 {
     if (status->text)
