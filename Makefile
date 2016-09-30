@@ -178,7 +178,7 @@ $(objtree)/%.c: $(srctree)/%.l
 
 $(srctree)/%.tab.c $(srctree)/%.tab.h: $(srctree)/%.y
 	@$(call mecho," YACC    $@","$(YACC) $(YFLAGS) -d -b $* $<")
-	$(Q)$(YACC) $(YFLAGS) --verbose -d -b $* $<
+	$(Q)$(YACC) $(YFLAGS) -d -b $* $<
 
 DEP_LIST := $(foreach dep,$(DEPS),$(dir $(dep)).$(notdir $(dep)))
 DEP_LIST := $(DEP_LIST:.o=.d)

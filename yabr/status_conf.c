@@ -33,30 +33,46 @@ int status_config_get_int(struct status_config_item *list, const char *id)
         return 0;
 }
 
+int status_config_item_set_str(struct status_config_item *item, const char *value)
+{
+    if (item->type != STATUS_CONFIG_STRING)
+        return -1;
+
+    if (flag_test(&item->flags, STATUS_CONFIG_FLAG_CHANGE))
+        free(item->str);
+    else
+        flag_set(&item->flags, STATUS_CONFIG_FLAG_CHANGE);
+
+    item->str = strdup(value);
+    return 0;
+}
+
 int status_config_set_str(struct status_config_item *list, const char *id, const char *value)
 {
     struct status_config_item *config = status_config_get(list, id);
-    if (!config || config->type != STATUS_CONFIG_STRING)
+    if (!config)
         return -1;
 
-    if (flag_test(&config->flags, STATUS_CONFIG_FLAG_CHANGE))
-        free(config->str);
-    else
-        flag_set(&config->flags, STATUS_CONFIG_FLAG_CHANGE);
+    return status_config_item_set_str(config, value);
+}
 
-    config->str = strdup(value);
+int status_config_item_set_int(struct status_config_item *item, int value)
+{
+    if (item->type != STATUS_CONFIG_INT)
+        return -1;
+
+    flag_set(&item->flags, STATUS_CONFIG_FLAG_CHANGE);
+    item->i = value;
     return 0;
 }
 
 int status_config_set_int(struct status_config_item *list, const char *id, int value)
 {
     struct status_config_item *config = status_config_get(list, id);
-    if (!config || config->type != STATUS_CONFIG_INT)
+    if (!config)
         return -1;
 
-    flag_set(&config->flags, STATUS_CONFIG_FLAG_CHANGE);
-    config->i = value;
-    return 0;
+    return status_config_item_set_int(config, value);
 }
 
 int status_config_list_count(struct status_config_item *list)

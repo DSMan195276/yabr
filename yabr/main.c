@@ -178,7 +178,7 @@ int main(int argc, char **argv)
         yabr_config.debug = stderr;
 
     if (optind < argc) {
-        fprintf(stderr, "%s: Unused argument \"%s\"", argv[0], argv[optind]);
+        fprintf(stderr, "%s: Unused argument \"%s\"\n", argv[0], argv[optind]);
         exit(1);
     }
 

@@ -1,38 +1,97 @@
 
+var color_back    = 0xFF1D1F21;
+var color_fore    = 0xFFC5C8C6;
+var color_sec_b1  = 0xFF282A2E;
+var color_sec_b2  = 0xFF454A4F;
+var color_sec_b3  = 0xFF60676E;
+var color_urgent  = 0xFFCE935F;
+var color_disable = 0xFF1D1F21;
+
+var color_head    = 0xFFBD6871;
+var color_wsp     = 0xFF944040;
+
+var wsp_fore = color_wsp;
+var wsp_back = color_head;
+
+var wsp_focused_fore = color_back;
+var wsp_focused_back = wsp_fore;
+
+var wsp_unfocused_fore = color_disable;
+var wsp_unfocused_back = wsp_back;
+
+var wsp_urgent_fore = color_back;
+var wsp_urgent_back = color_urgent;
+
+var title_fore = color_fore;
+var title_back = color_sec_b1;
+
+var status_last_fore = color_back;
+var status_last_back = color_head;
+
+var mode_fore = color_fore;
+var mode_back = color_sec_b2;
+
+var status_urgent_fore = color_back;
+var status_urgent_back = color_urgent;
+
+var centered_fore = color_back;
+var centered_back = color_head;
+
+var default_back = 0xFF1D1F21;
+var default_fore = 0xFFC5C8C6;
+
+wsp = { wsp_fore, wsp_back };
+wsp_focused = { wsp_focused_fore, wsp_focused_back };
+wsp_unfocused = { wsp_unfocused_fore, wsp_unfocused_back };
+wsp_urgent = { wsp_urgent_fore, wsp_urgent_back };
+title = { title_fore, title_back };
+status_last = { status_last_fore, status_last_back };
+mode = { mode_fore, mode_back };
+status_urgent = { status_urgent_fore, status_last_back };
+centered = { centered_fore, centered_back };
+def = { default_fore, default_back };
+
+sections = [
+    { color_fore, color_sec_b1 },
+    { color_fore, color_sec_b2 },
+    { color_fore, color_sec_b3 }
+];
+
 # centered can include one status
 center {
     status mpd {
-        server = "127.0.0.1",
-        port = 6600
+        server = "127.0.0.1";
+        port = 6600;
     }
-},
+}
 
 # right can include as many as you want
 right {
     status wireless {
-        iface = "wlp3s0"
-    },
+        iface = "wlp3s0";
+    }
 
     status alsa {
-        mixer = "Master",
-        card = "default"
-    },
+        mixer = "Master";
+        card = "default";
+    }
 
     status battery {
-    },
+        id = "BAT0";
+    }
 
     status mail {
-        maildir = "/mnt/data/mail/Inbox"
-    },
+        maildir = "/mnt/data/mail/Inbox";
+    }
 
     status datetime {
-        format = "%m-%d-%Y",
-        timeout = 300
-    },
+        format = "%m-%d-%Y";
+        timeout = 300;
+    }
 
     status datetime {
-        format = "%H:%M",
-        timeout = 30,
-    },
+        format = "%H:%M";
+        timeout = 30;
+    }
 }
 

@@ -2,6 +2,7 @@
 #define INCLUDE_CONFIG_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include "list.h"
 #include "render.h"
 #include "status_desc.h"
@@ -17,9 +18,36 @@ enum {
     DESC_TOTAL,
 };
 
+
+struct yabr_config_colors {
+    struct bar_color wsp;
+    struct bar_color wsp_focused;
+    struct bar_color wsp_unfocused;
+    struct bar_color wsp_urgent;
+    struct bar_color title;
+
+    struct bar_color status_last;
+    struct bar_color mode;
+    struct bar_color status_urgent;
+    struct bar_color centered;
+    struct bar_color def;
+
+    int section_count;
+    struct bar_color *section_cols;
+};
+
 struct yabr_config {
     FILE *debug;
     char *config_file;
+
+    struct yabr_config_colors colors;
+
+    int use_separator;
+
+    char *sep_rightside, *sep_leftside;
+    char *sep_rightside_same, *sep_leftside_same;
+
+    char *lemonbar_font;
 
     struct bar_state state;
 

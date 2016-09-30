@@ -8,8 +8,10 @@
 #include <i3ipc-glib/i3ipc-glib.h>
 
 #include "bar_config.h"
+#include "config.h"
 #include "render.h"
 
+#if 0
 static struct bar_color status_colors[] = {
     { .fore = COLOR_FORE, .back = COLOR_SEC_B1 },
     { .fore = COLOR_FORE, .back = COLOR_SEC_B2 },
@@ -22,6 +24,7 @@ static struct bar_color status_last_color = {
 };
 
 #define STATUS_COLORS_COUNT ((sizeof(status_colors)/sizeof(*status_colors)) - 1)
+#endif
 
 void status_list_add(struct status_list *status_list, struct status *status)
 {
@@ -49,22 +52,22 @@ static void render_color_no_sep(struct bar_state *state, struct bar_output *outp
 
 static void render_color(struct bar_state *state, struct bar_output *output)
 {
-    if (BAR_USE_SEP && state->past_first_entry) {
+    if (yabr_config.use_separator && state->past_first_entry) {
         if (state->prev_color.back != state->color.back) {
             if (state->sep_direction == 0) {
                 fprintf(output->bar, "%%{F#%08x B#%08x}", state->prev_color.back, state->color.back);
-                fprintf(output->bar, "%s", BAR_SEP_LEFTSIDE);
+                fprintf(output->bar, "%s", yabr_config.sep_leftside);
             } else {
                 fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.back, state->prev_color.back);
-                fprintf(output->bar, "%s", BAR_SEP_RIGHTSIDE);
+                fprintf(output->bar, "%s", yabr_config.sep_rightside);
             }
         } else {
             if (state->sep_direction == 0) {
                 fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
-                fprintf(output->bar, "%s", BAR_SEP_LEFTSIDE_SAME);
+                fprintf(output->bar, "%s", yabr_config.sep_leftside_same);
             } else {
                 fprintf(output->bar, "%%{F#%08x B#%08x}", state->color.fore, state->color.back);
-                fprintf(output->bar, "%s", BAR_SEP_RIGHTSIDE_SAME);
+                fprintf(output->bar, "%s", yabr_config.sep_rightside_same);
             }
         }
     }
@@ -147,15 +150,18 @@ static void status_render(struct bar_state *state, struct bar_output *output)
         int is_last = status == last_entry;
 
         if (flag_test(&status->flags, STATUS_URGENT)) {
+            state->color = yabr_config.colors.status_urgent;
+#if 0
             state->color.fore = BAR_COLOR_STATUS_URGENT_FORE;
             state->color.back = BAR_COLOR_STATUS_URGENT_BACK;
+#endif
         } else {
             if (is_last)
-                state->color = status_last_color;
+                state->color = yabr_config.colors.status_last;
             else
-                state->color = status_colors[cur_status_color];
+                state->color = yabr_config.colors.section_cols[cur_status_color];
 
-            cur_status_color = (cur_status_color + 1) % STATUS_COLORS_COUNT;
+            cur_status_color = (cur_status_color + 1) % yabr_config.colors.section_count;
         }
 
         render_color(state, output);
@@ -169,15 +175,17 @@ static void status_render(struct bar_state *state, struct bar_output *output)
 
 static void mode_render(struct bar_state *state, struct bar_output *output)
 {
+#if 0
     struct bar_color mode_color = {
         .fore = BAR_COLOR_MODE_FORE,
         .back = BAR_COLOR_MODE_BACK,
     };
+#endif
 
     if (!state->mode)
         return ;
 
-    state->color = mode_color;
+    state->color = yabr_config.colors.mode;
     render_color(state, output);
 
     fprintf(output->bar, " %s ", state->mode);
@@ -185,8 +193,11 @@ static void mode_render(struct bar_state *state, struct bar_output *output)
 
 static void title_render(struct bar_state *state, struct bar_output *output)
 {
+    state->color = yabr_config.colors.title;
+#if 0
     state->color.fore = BAR_COLOR_TITLE_FORE;
     state->color.back = BAR_COLOR_TITLE_BACK;
+#endif
     render_color(state, output);
     fprintf(output->bar, " %s ", state->win_title);
 }
@@ -204,14 +215,23 @@ static void ws_list_render(struct bar_state *state, struct bar_output *output)
             continue;
 
         if (flag_test(&ws->flags, WS_URGENT)) {
+            state->color = yabr_config.colors.wsp_urgent;
+#if 0
             state->color.fore = BAR_COLOR_WSP_URGENT_FORE;
             state->color.back = BAR_COLOR_WSP_URGENT_BACK;
+#endif
         } else if (flag_test(&ws->flags, WS_FOCUSED)) {
+            state->color = yabr_config.colors.wsp_focused;
+#if 0
             state->color.fore = BAR_COLOR_WSP_FOCUSED_FORE;
             state->color.back = BAR_COLOR_WSP_FOCUSED_BACK;
+#endif
         } else {
+            state->color = yabr_config.colors.wsp_unfocused;
+#if 0
             state->color.fore = BAR_COLOR_WSP_UNFOCUSED_FORE;
             state->color.back = BAR_COLOR_WSP_UNFOCUSED_BACK;
+#endif
         }
 
         snprintf(cmdbuf, sizeof(cmdbuf), "i3-msg workspace %s", ws->name);
@@ -234,38 +254,43 @@ static void ws_list_render(struct bar_state *state, struct bar_output *output)
  */
 static void bar_state_render_output(struct bar_state *state, struct bar_output *output)
 {
+#if 0
     struct bar_color def_color = {
         .fore = COLOR_FORE,
         .back = COLOR_BACK
     };
+#endif
 
     render_left_align(state, output);
     ws_list_render(state, output);
     mode_render(state, output);
     title_render(state, output);
 
-    state->color = def_color;
+    state->color = yabr_config.colors.def;
     render_color(state, output);
 
     if (state->centered
         && flag_test(&state->centered->flags, STATUS_VISIBLE)) {
         render_center_align(state, output);
         state->sep_direction = 1;
+        state->color = yabr_config.colors.centered;
+#if 0
         state->color.fore = BAR_COLOR_CENTERED_FORE;
         state->color.back = BAR_COLOR_CENTERED_BACK;
+#endif
         render_color(state, output);
 
         render_single_status(state, output, state->centered);
 
         state->sep_direction = 0;
-        state->color = def_color;
+        state->color = yabr_config.colors.def;
         render_color(state, output);
     }
 
     render_right_align(state, output);
     status_render(state, output);
 
-    state->color = def_color;
+    state->color = yabr_config.colors.def;
 
     render_color_no_sep(state, output);
     render_finish(state, output);

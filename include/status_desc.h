@@ -59,6 +59,9 @@ int status_config_get_int(struct status_config_item *list, const char *id);
 int status_config_set_str(struct status_config_item *list, const char *id, const char *value);
 int status_config_set_int(struct status_config_item *list, const char *id, int value);
 
+int status_config_item_set_str(struct status_config_item *item, const char *value);
+int status_config_item_set_int(struct status_config_item *item, int value);
+
 int status_config_list_count(struct status_config_item *list);
 void status_config_list_clear(struct status_config_item *list);
 

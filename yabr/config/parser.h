@@ -14,6 +14,29 @@ struct parse_state {
 
 int yyparse(struct parse_state *state);
 
+enum var_type {
+    VAR_STRING,
+    VAR_INT,
+    VAR_COLOR,
+    VAR_COLOR_PAIR,
+};
+
+union var_data {
+    char *str;
+    int i;
+    uint32_t color;
+    struct bar_color color_pair;
+};
+
+struct variable {
+    list_node_t variable_entry;
+
+    char *id;
+    enum var_type type;
+    union var_data data;
+};
+
+
 #ifndef IN_PARSER
 # include "parser.tab.h"
 #endif

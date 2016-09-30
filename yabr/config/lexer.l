@@ -1,8 +1,10 @@
 
 %{
 #include <string.h>
+#include <stdio.h>
 
 #include "status.h"
+#include "render.h"
 #include "status_desc.h"
 
 #include "lexer.h"
@@ -16,6 +18,7 @@
 %option yylineno
 
 %x string
+%x comment
 
 %%
 
@@ -29,6 +32,9 @@
 "}" { return '}'; }
 "=" { return '='; }
 "," { return ','; }
+";" { return ';'; }
+"[" { return '['; }
+"]" { return ']'; }
 
 [0-9]+ {
     yylval.ival = atoi(yytext);
@@ -38,6 +44,12 @@
 "status" { return TOK_STATUS; }
 "right" { return TOK_RIGHT; }
 "center" { return TOK_CENTER; }
+"var" { return TOK_VAR; }
+
+(0x)?[a-fA-F0-9]{8} {
+    sscanf(yytext, "%x", &yylval.color);
+    return TOK_COLOR;
+}
 
 [a-zA-Z0-9_\-]+ {
     yylval.str = strdup(yytext);
@@ -56,6 +68,11 @@
 <string>"\"" {
     BEGIN(INITIAL);
 }
+
+"/*" { BEGIN(comment); }
+<comment>"*/" { BEGIN(INITIAL); }
+<comment>\n { }
+<comment>. { }
 
 <<EOF>> {
     return TOK_EOF;
