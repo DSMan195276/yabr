@@ -1,0 +1,38 @@
+
+# centered can include one status
+center {
+    status mpd {
+        server = "127.0.0.1",
+        port = 6600
+    }
+},
+
+# right can include as many as you want
+right {
+    status wireless {
+        iface = "wlp3s0"
+    },
+
+    status alsa {
+        mixer = "Master",
+        card = "default"
+    },
+
+    status battery {
+    },
+
+    status mail {
+        maildir = "/mnt/data/mail/Inbox"
+    },
+
+    status datetime {
+        format = "%m-%d-%Y",
+        timeout = 300
+    },
+
+    status datetime {
+        format = "%H:%M",
+        timeout = 30,
+    },
+}
+
