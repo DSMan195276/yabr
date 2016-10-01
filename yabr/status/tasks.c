@@ -20,6 +20,11 @@ struct tasks {
     char *tag;
 };
 
+/*
+ * The below code parses through task warrior output. Used to be used, but is
+ * currently unused. Left here until it sees other uses.
+ */
+#if 0
 struct taskwarrior_task {
     char *description;
 
@@ -54,6 +59,7 @@ static void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
 
     return ;
 }
+#endif
 
 static void tasks_update(struct tasks *tasks)
 {
