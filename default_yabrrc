@@ -57,6 +57,20 @@ sections = [
     { color_fore, color_sec_b3 }
 ];
 
+lemonbar_font = "-xos4-terminesspowerline-medium-r-normal--12-120-72-72-c-60-iso10646-1";
+
+
+use_separator = 1;
+
+#define BAR_USE_SEP 1
+
+sep_rightside = "";
+sep_leftside = "";
+
+sep_rightside_same = "";
+sep_leftside_same = "";
+
+
 # centered can include one status
 center {
     status mpd {
