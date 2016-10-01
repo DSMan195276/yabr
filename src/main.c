@@ -125,6 +125,7 @@ static void usage(const char *prog)
 static void version(const char *prog)
 {
     printf("%s: Yet Another Bar Replacement\n", prog);
+    printf("  Version: " Q(YABR_VERSION_N) "\n");
     printf("  Written by Matthew Kilgore\n");
 }
 
