@@ -1,16 +1,31 @@
 include ./config.mk
 
-srctree := .
-objtree := .
+# Program wide settings
+EXE       := yabr
+EXEC      := YABR
+PROG      := $(BIN)/$(EXE)
+YABR_VERSION   := 0
+YABR_SUBLEVEL  := 1
+YABR_PATCH     := 0
+YABR_VERSION_N := $(YABR_VERSION).$(YABR_SUBLEVEL).$(YABR_PATCH)
 
-real_srctree := $(srctree)
-real_objtree := $(objtree)
+LIBFLAGS := `pkg-config --libs i3ipc-glib-1.0` \
+					-lasound \
+					-lm \
+					`pkg-config --libs libmpdclient`
+
+CFLAGS  += -I'./include' `pkg-config --cflags i3ipc-glib-1.0` \
+				`pkg-config --cflags libmpdclient` \
+				-DYABR_VERSION_N="$(YABR_VERSION_N)"
+
+# 'tree' references the current directory later-on
+tree := .
 
 # This is our default target - The default is the first target in the file so
 # we need to define this fairly high-up.
 all: real-all
 
-PHONY += all install clean dist real-all configure
+.PHONY: all install clean dist real-all configure
 
 # Predefine this variable. It contains a list of extra files to clean. Ex.
 CLEAN_LIST :=
@@ -25,96 +40,51 @@ SRC_OBJS :=
 
 # Set configuration options
 Q := @
-quiet := quiet
-ifeq ($(V),y)
-	quiet :=
+ifdef V
+	Q :=
 endif
-
-ifdef silent
-	quiet := silent
-endif
-
-_echo_cmd = echo $(2)
-quiet_echo_cmd = echo $(1)
-slient_echo_cmd = true
-
-mecho = $(call $(quiet)_echo_cmd,$(1),$(2))
-
-
-# This includes everything in the 'include' folder of the $(objtree)
-# This is so that the code can reference generated include files
-CPPFLAGS += -I'$(objtree)/include/'
 
 define create_link_rule
 $(1): $(2)
-	@$$(call mecho," LD      $$@","$$(LD) -r $(2) -o $$@")
+	@echo " LD      $$@"
 	$$(Q)$$(LD) -r $(2) -o $$@
 endef
 
-define create_cc_rule
-ifneq ($$(wildcard $(2)),)
-$(1): $(2)
-	@$$(call mecho," CC      $$@","$$(CC) $$(CFLAGS) $$(CPPFLAGS) $(3) -c $$< -o $$@")
-	$$(Q)$$(CC) $$(CFLAGS) $$(CPPFLAGS) $(3) -c $$< -o $$@
-
-$(dir $(1)).$(basename $(notdir $(1))).d: $(2)
-	@$$(call mecho," CCDEP   $$@","$$(CC) -MM -MP -MF $$@ $$(CPPFLAGS) $$(CFLAGS) $(3) $$< -MT $$(objtree)/$$*.o -MT $$@")
-	$$(Q)$$(CC) -MM -MP -MF $$@ $$(CPPFLAGS) $$(CFLAGS) $(3) $$< -MT $(1) -MT $$@
-endif
-endef
-
 # Traverse into tree
-define subdir_inc
-objtree := $$(objtree)/$(1)
-srctree := $$(srctree)/$(1)
+#
+# For those confused, this does a few things:
+#   1. Initalizes some variables for the current directory
+#   2. 'Include's the current directory's Makefile, to get it's object information
+#   3. Updates the clean-list, dependency list
+#   4. Creates a rule that links all the objects in that directory into a
+#      single .o file (Including sub-directory objects)
+#   5. Recurses into subdirectories listed in the included Makefile
 
-cflags-sav := $$(cflags-y)
+define subdir_inc
+tree := $$(tree)/$(1)
 
 subdir-y :=
 objs-y :=
 clean-list-y :=
 
-_tmp := $$(shell mkdir -p $$(objtree))
-include $$(srctree)/Makefile
+include $$(tree)/Makefile
 
-CLEAN_LIST += $$(patsubst %,$$(objtree)/%,$$(objs-y)) $$(patsubst %,$$(objtree)/%,$$(clean-list-y)) $$(objtree).o
-DEPS += $$(patsubst %,$$(objtree)/%,$$(objs-y))
+# Prepend 'tree' to everything in the lists - the lists are relative to their directory
+CLEAN_LIST += $$(patsubst %,$$(tree)/%,$$(objs-y)) $$(patsubst %,$$(tree)/%,$$(clean-list-y)) $$(tree).o
+DEPS += $$(patsubst %,$$(tree)/%,$$(objs-y))
 
-objs := $$(patsubst %,$$(objtree)/%,$$(objs-y)) $$(patsubst %,$$(objtree)/%.o,$$(subdir-y))
+objs := $$(patsubst %,$$(tree)/%,$$(objs-y)) $$(patsubst %,$$(tree)/%.o,$$(subdir-y))
 
-$$(foreach obj,$$(patsubst %,$$(objtree)/%,$$(objs-y)),$$(eval $$(call create_cc_rule,$$(obj),$$(obj:.o=.c),$$($$(PROJ)_CFLAGS) $$(cflags-y))))
-
-$$(eval $$(call create_link_rule,$$(objtree).o,$$(objs)))
+$$(eval $$(call create_link_rule,$$(tree).o,$$(objs)))
 
 $$(foreach subdir,$$(subdir-y),$$(eval $$(call subdir_inc,$$(subdir))))
 
-cflags-y := $$(cflags-sav)
-srctree := $$(patsubst %/$(1),%,$$(srctree))
-objtree := $$(patsubst %/$(1),%,$$(objtree))
-endef
-
-
-define proj_ccld_rule
-$(1): $(2) | $$(objtree)/bin
-	@$$(call mecho," CCLD    $$@","$$(CC) $(3) $(2) -o $$@ $(4)")
-	$$(Q)$$(CC) $$(LDFLAGS) $(3) $(2) -o $$@ $(4)
-endef
-
-define proj_inc
-include $(1)/config.mk
-PROG := $$(objtree)/bin/$$(EXE)
-PROJ := $$(EXEC)
-
-objs := $$(sort $$($$(EXEC)_OBJS) $$(SRC_OBJS))
-
-$$(eval $$(call proj_ccld_rule,$$(PROG),$$(objs),$$($$(EXEC)_CFLAGS),$$($$(EXEC)_LIBFLAGS)))
-$$(eval $$(call subdir_inc,$$(EXE)))
-CLEAN_LIST += $$(PROG)
+# Reduce 'tree' by one directory level
+tree := $$(patsubst %/$(1),%,$$(tree))
 endef
 
 ifeq ($(CONFIG_DEBUG),y)
-	CPPFLAGS += -DCONFIG_DEBUG
-	CFLAGS += -g
+	CFLAGS += -g -DCONFIG_DEBUG
 	ASFLAGS += -g
 	LDFLAGS += -g
 endif
@@ -124,19 +94,17 @@ ifeq ($(CONFIG_PROF),y)
 	LDFLAGS += -pg
 endif
 
-$(eval $(call proj_inc,yabr))
-CLEAN_LIST += $(objtree)/bin
+$(eval $(call subdir_inc,src))
 
-EXES := $(objtree)/bin/yabr
-
-# Include tests
-ifneq (,$(filter $(MAKECMDGOALS),check clean))
-include ./test/Makefile
-endif
-
+CLEAN_LIST += $(BIN)
+CLEAN_LIST += $(PROG)
 
 # Actual entry
-real-all: $(EXES)
+real-all: $(PROG)
+
+$(PROG): ./src.o | $(BIN)
+	@echo " CCLD    $@"
+	$(Q)$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $< $(LIBFLAGS)
 
 install:
 	$(Q)mkdir -p $(BINDIR)
@@ -146,38 +114,38 @@ install:
 
 dist: clean
 	$(Q)mkdir -p $(EXE)-$(VERSION_N)
-	$(Q)cp -R Makefile README.md config.mk LICENSE ./doc ./include ./src ./yabr $(EXE)-$(VERSION_N)
+	$(Q)cp -R Makefile README.md config.mk LICENSE ./include ./src $(EXE)-$(VERSION_N)
 	$(Q)tar -cf $(EXE)-$(VERSION_N).tar $(EXE)-$(VERSION_N)
 	$(Q)gzip $(EXE)-$(VERSION_N).tar
 	$(Q)rm -fr $(EXE)-$(VERSION_N)
-	@$(call mecho," Created $(EXE)-$(VERSION_N).tar.gz","gzip $(EXE)-$(VERSION_N).tar")
+	@echo " Created $(EXE)-$(VERSION_N).tar.gz"
 
 clean:
 	$(Q)for file in $(CLEAN_LIST); do \
 		if [ -e $$file ]; then \
-		    $(call mecho," RM      $$file";,"rm -fr $$file";) \
+		    echo " RM      $$file"; \
 			rm -rf $$file; \
 		fi \
 	done
 
-$(objtree)/bin:
-	@$(call mecho," MKDIR   $@","$(MKDIR) $@")
+$(BIN):
+	@echo " MKDIR   $@"
 	$(Q)$(MKDIR) $@
 
-$(objtree)/%.o: $(srctree)/%.c
-	@$(call mecho," CC      $@","$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@")
-	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+%.o: %.c
+	@echo " CC      $@"
+	$(Q)$(CC) $(CFLAGS) -c $< -o $@
 
-$(objtree)/.%.d: $(srctree)/%.c
-	@$(call mecho," CCDEP   $@","$(CC) -MM -MP -MF $@ $(CPPFLAGS) $(CFLAGS) $< -MT $(objtree)/$*.o -MT $@")
-	$(Q)$(CC) -MM -MP -MF $@ $(CPPFLAGS) $(CFLAGS) $< -MT $(objtree)/$*.o -MT $@
+.%.d: %.c
+	@echo " CCDEP   $@"
+	$(Q)$(CC) -MM -MP -MF $@ $(CFLAGS) $< -MT ./$*.o -MT $@
 
-$(objtree)/%.c: $(srctree)/%.l
-	@$(call mecho," LEX     $@","$(LEX) -o $@ $<")
+%.c: %.l
+	@echo " LEX     $@"
 	$(Q)$(LEX) $(LFLAGS) -o $@ $<
 
-$(srctree)/%.tab.c $(srctree)/%.tab.h: $(srctree)/%.y
-	@$(call mecho," YACC    $@","$(YACC) $(YFLAGS) -d -b $* $<")
+%.tab.c %.tab.h: %.y
+	@echo " YACC    $@"
 	$(Q)$(YACC) $(YFLAGS) -d -b $* $<
 
 DEP_LIST := $(foreach dep,$(DEPS),$(dir $(dep)).$(notdir $(dep)))
@@ -189,6 +157,4 @@ ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP_LIST)
 endif
 CLEAN_LIST += $(DEP_LIST)
-
-.PHONY: $(PHONY)
 
