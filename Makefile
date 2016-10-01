@@ -113,12 +113,12 @@ install:
 	@echo " yabr Installation done"
 
 dist: clean
-	$(Q)mkdir -p $(EXE)-$(VERSION_N)
-	$(Q)cp -R Makefile README.md config.mk LICENSE ./include ./src $(EXE)-$(VERSION_N)
-	$(Q)tar -cf $(EXE)-$(VERSION_N).tar $(EXE)-$(VERSION_N)
-	$(Q)gzip $(EXE)-$(VERSION_N).tar
-	$(Q)rm -fr $(EXE)-$(VERSION_N)
-	@echo " Created $(EXE)-$(VERSION_N).tar.gz"
+	$(Q)mkdir -p $(EXE)-$(YABR_VERSION_N)
+	$(Q)cp -R Makefile README.md config.mk LICENSE ./default_yabrrc ./include ./src $(EXE)-$(YABR_VERSION_N)
+	$(Q)tar -cf $(EXE)-$(YABR_VERSION_N).tar $(EXE)-$(YABR_VERSION_N)
+	$(Q)gzip $(EXE)-$(YABR_VERSION_N).tar
+	$(Q)rm -fr $(EXE)-$(YABR_VERSION_N)
+	@echo " Created $(EXE)-$(YABR_VERSION_N).tar.gz"
 
 clean:
 	$(Q)for file in $(CLEAN_LIST); do \
@@ -153,7 +153,7 @@ DEP_LIST := $(DEP_LIST:.o=.d)
 
 real-all: $(DEP_LIST)
 
-ifneq ($(MAKECMDGOALS),clean)
+ifeq (,$(filter $(MAKECMDGOALS),clean dist))
 -include $(DEP_LIST)
 endif
 CLEAN_LIST += $(DEP_LIST)
