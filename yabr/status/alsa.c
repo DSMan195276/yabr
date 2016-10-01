@@ -70,14 +70,6 @@ static int alsa_open_mixer(struct alsa *alsa, const char *card, const char *sele
     return ret;
 }
 
-static void alsa_close_mixer(struct alsa *alsa)
-{
-    if (alsa->mixer) {
-        snd_mixer_close(alsa->mixer);
-        alsa->mixer = NULL;
-    }
-}
-
 static long alsa_get_volume(struct alsa *alsa)
 {
     long volume;
