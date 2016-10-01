@@ -11,24 +11,28 @@
 #include "render.h"
 #include "bar_config.h"
 #include "status_desc.h"
+#include "config.h"
 #include "tasks.h"
 
 struct tasks {
     struct status status;
+    char *days;
+    char *tag;
 };
 
 struct taskwarrior_task {
     char *description;
+
     struct tm due;
     time_t due_time;
 };
 
-void taskwarrior_task_clear(struct taskwarrior_task *task)
+static void taskwarrior_task_clear(struct taskwarrior_task *task)
 {
     free(task->description);
 }
 
-void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
+static void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
 {
     char *line = NULL;
     ssize_t len;
@@ -51,56 +55,21 @@ void taskwarrior_task_read(struct taskwarrior_task *task, FILE *file)
     return ;
 }
 
-static void tasks_test_update(struct tasks *tasks)
-{
-    char buf[128];
-    FILE *prog;
-    int test_id;
-    int test_comming;
-
-    prog = popen("task due.before:`task calc now + 3d` status:Pending +test ids", "r");
-    test_comming = fscanf(prog, "%d", &test_id);
-    pclose(prog);
-
-    if (test_comming != 1) {
-        flag_clear(&tasks->status.flags, STATUS_VISIBLE);
-    } else {
-        struct taskwarrior_task task;
-        struct timeval current_day;
-        double diff_time;
-        int days;
-
-        memset(&task, 0, sizeof(task));
-
-        gettimeofday(&current_day, NULL);
-
-        snprintf(buf, sizeof(buf), "task %d information", test_id);
-        prog = popen(buf, "r");
-        taskwarrior_task_read(&task, prog);
-        pclose(prog);
-
-        diff_time = difftime(task.due_time, current_day.tv_sec);
-
-        days = (int)ceil(diff_time / 60 / 60 / 24);
-        snprintf(buf, sizeof(buf), "%s: %d day%s", task.description, days, (days != 1)? "s": "");
-
-        flag_set(&tasks->status.flags, STATUS_VISIBLE);
-        flag_set(&tasks->status.flags, STATUS_URGENT);
-        status_change_text(&tasks->status, buf);
-
-        taskwarrior_task_clear(&task);
-    }
-}
-
 static void tasks_update(struct tasks *tasks)
 {
     char buf[128];
     FILE *prog;
     int task_due_week_count;
 
-    prog = popen("task due.before:`task calc now + 6d` status:Pending count", "r");
+    snprintf(buf, sizeof(buf), "task due.before:`task calc now + %s` status:Pending %c%s count",
+            tasks->days, (tasks->tag)? '+': ' ', (tasks->tag)? tasks->tag: "");
+
+    prog = popen(buf, "r");
     fscanf(prog, "%d", &task_due_week_count);
     pclose(prog);
+
+    dbgprintf("Tasks: %d\n", task_due_week_count);
+    dbgprintf("Tasks cmd: %s\n", buf);
 
     if (!task_due_week_count) {
         flag_clear(&tasks->status.flags, STATUS_VISIBLE);
@@ -121,23 +90,16 @@ static gboolean task_check(gpointer data)
     return TRUE;
 }
 
-static gboolean task_test_check(gpointer data)
-{
-    struct tasks *tasks = data;
-
-    tasks_test_update(tasks);
-    bar_render_global();
-
-    return TRUE;
-}
-
-static struct status *tasks_status_create(int timeout)
+static struct status *tasks_status_create(const char *days, const char *tag, int timeout)
 {
     struct tasks *tasks;
 
     tasks = malloc(sizeof(*tasks));
     memset(tasks, 0, sizeof(*tasks));
     status_init(&tasks->status);
+    tasks->days = strdup(days);
+    if (tag)
+        tasks->tag = strdup(tag);
 
     tasks_update(tasks);
 
@@ -146,30 +108,21 @@ static struct status *tasks_status_create(int timeout)
     return &tasks->status;
 }
 
-static struct status *tasks_test_status_create(int timeout)
-{
-    struct tasks *tasks;
-
-    tasks = malloc(sizeof(*tasks));
-    memset(tasks, 0, sizeof(*tasks));
-    status_init(&tasks->status);
-
-    tasks_test_update(tasks);
-
-    g_timeout_add_seconds(timeout, task_test_check, tasks);
-
-    return &tasks->status;
-}
-
 static struct status *tasks_create(struct status_config_item *list)
 {
-    return tasks_status_create(status_config_get_int(list, "timeout"));
+    const char *days = status_config_get_str(list, "days");
+    const char *tag = status_config_get_str(list, "tag");
+    int timeout = status_config_get_int(list, "timeout");
+
+    return tasks_status_create(days, tag, timeout);
 }
 
 const struct status_description tasks_status_description = {
     .name = "tasks",
     .items = (struct status_config_item []) {
         STATUS_CONFIG_ITEM_INT("timeout", 60),
+        STATUS_CONFIG_ITEM_STR("days", "5d"),
+        STATUS_CONFIG_ITEM_STR("tag", NULL),
         STATUS_CONFIG_END(),
     },
     .status_create = tasks_create,

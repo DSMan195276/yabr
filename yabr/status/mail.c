@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <dirent.h>
 #include <sys/time.h>
 #include <sys/inotify.h>
 
@@ -18,8 +19,8 @@
 struct mail {
     struct status status;
 
-    const char *name;
-    const char *mail_dir;
+    char *name;
+    char *mail_dir;
     int new_count;
 
     int inotifyfd;
@@ -29,18 +30,30 @@ struct mail {
 
 static int count_new_mail(const char *mail_dir)
 {
-    char exe[256];
-    FILE *m;
-    int count;
+    char path[256];
+    DIR *dir;
+    int count = 0;
+    struct dirent *ent;
 
-    snprintf(exe, sizeof(exe), "mail -H -f %s | grep \"^ N\" | wc -l", mail_dir);
+    snprintf(path, sizeof(path), "%s/new", mail_dir);
 
-    m = popen(exe, "r");
+    dir = opendir(path);
+    if (!dir) {
+        dbgprintf("Unable to open mail dir: %s\n", path);
+        return 0;
+    }
 
-    fscanf(m, "%d", &count);
+    while ((ent = readdir(dir)) != NULL)
+        count++;
+
+    closedir(dir);
+
+    count -= 2;
+
+    if (count < 0)
+        count = 0;
+
     dbgprintf("New mail %s count: %d\n", mail_dir, count);
-
-    pclose(m);
 
     return count;
 }
@@ -103,8 +116,8 @@ static struct status *mail_status_create(const char *name, const char *mail_dir)
     mail = malloc(sizeof(*mail));
     memset(mail, 0, sizeof(*mail));
     status_init(&mail->status);
-    mail->name = name;
-    mail->mail_dir = mail_dir;
+    mail->name = strdup(name);
+    mail->mail_dir = strdup(mail_dir);
     mail->inotifyfd = inotify_init();
 
     mail_update(mail);

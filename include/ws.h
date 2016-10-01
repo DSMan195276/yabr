@@ -8,6 +8,8 @@
 #include "list.h"
 #include "flag.h"
 
+struct bar_state;
+
 /* Describes a workspace */
 struct ws {
     char *name;
@@ -52,5 +54,9 @@ void ws_clear(struct ws *);
 void ws_list_clear(struct ws_list *);
 
 int ws_list_refresh(struct ws_list *, i3ipcConnection *);
+
+void ws_next(struct bar_state *, const char *output);
+void ws_prev(struct bar_state *, const char *output);
+void ws_switch(struct bar_state *, const char *ws);
 
 #endif

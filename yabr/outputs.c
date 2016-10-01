@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include <glib/gprintf.h>
 #include <i3ipc-glib/i3ipc-glib.h>
@@ -12,26 +14,111 @@
 #include "ws.h"
 #include "render.h"
 #include "config.h"
+#include "lemonbar.h"
 #include "status.h"
 
-static void lemonbar_start(struct bar_output *output)
+static void run_cmd(struct status *status, const char *cmd, const char *arg)
 {
-    char prog_string[256];
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(status->cmds); i++) {
+        if (status->cmds[i].id && strcmp(status->cmds[i].id, cmd) == 0) {
+            (status->cmds[i].cmd_handle) (status, status->cmds + i, arg);
+            break;
+        }
+    }
+
+    return ;
+}
+
+static gboolean lemonbar_handle_cmd(GIOChannel *gio, GIOCondition condition, gpointer data)
+{
+    struct bar_output *bar = data;
+    struct status *status;
+    char cmd[256];
+    void *key;
+    char *s_cmd, *s_arg;
+    size_t len;
+
+    fgets(cmd, sizeof(cmd), bar->lemon.read_file);
+
+    /* Strip newline character */
+    len = strlen(cmd);
+    if (len)
+        cmd[len - 1] = '\0';
+
+    sscanf(cmd, "%p", &key);
+
+    s_cmd = strchr(cmd, '-');
+    if (!s_cmd)
+        return TRUE;
+
+    s_cmd++;
+
+    s_arg = strchr(s_cmd, '-');
+    if (s_arg) {
+        /* If we have arguments, cut-off the arguments into a separate
+         * string from the command */
+        *s_arg = '\0';
+        s_arg++;
+    }
+
+
+    if (key == &yabr_config.state) {
+        if (strcmp(s_cmd, "prev") == 0) {
+            ws_prev(&yabr_config.state, bar->name);
+        } else if (strcmp(s_cmd, "next") == 0) {
+            ws_next(&yabr_config.state, bar->name);
+        } else if (strcmp(s_cmd, "switch") == 0) {
+            if (s_arg)
+                ws_switch(&yabr_config.state, s_arg);
+        } else {
+            dbgprintf("Received unknown workspace cmd: %s\n", s_cmd);
+        }
+
+        return TRUE;
+    }
+
+    if (key == yabr_config.state.centered) {
+        run_cmd(yabr_config.state.centered, s_cmd, s_arg);
+        return TRUE;
+    }
+
+    list_foreach_entry(&yabr_config.state.status_list.list, status, status_entry) {
+        if (key == status) {
+            run_cmd(status, s_cmd, s_arg);
+            return TRUE;
+        }
+    }
+
+    return TRUE;
+}
+
+static void lemonbar_exec(struct bar_output *output)
+{
     char geometry[20];
     char fore[10], back[10];
 
-    sprintf(fore, "#%08x", BAR_DEFAULT_COLOR_FORE);
-    sprintf(back, "#%08x", BAR_DEFAULT_COLOR_BACK);
+    snprintf(fore, sizeof(fore), "#%08x", yabr_config.colors.def.fore);
+    snprintf(back, sizeof(back), "#%08x", yabr_config.colors.def.back);
+    snprintf(geometry, sizeof(geometry),  "%dx14+%d+0", output->width, output->x);
 
-    sprintf(geometry, "%dx14+%d+0", output->width, output->x);
+    char *const argv[] = {
+        "lemonbar",
+        "-a", "20",
+        "-g", geometry,
+        "-f", yabr_config.lemonbar_font,
+        "-F", fore,
+        "-B", back,
+        NULL
+    };
 
-    snprintf(prog_string, sizeof(prog_string),
-            "lemonbar -a 20 -g %s -f " LEMONBAR_FONT " -F%s -B%s | sh >/dev/null",
-            geometry, fore, back);
+    lemonbar_start(&output->lemon, "lemonbar", argv);
 
-    dbgprintf("Output: %s, lemonbar: %s\n", output->name, prog_string);
+    output->cmd_channel = g_io_channel_unix_new(output->lemon.readfd[0]);
+    g_io_add_watch(output->cmd_channel, G_IO_IN, lemonbar_handle_cmd, output);
 
-    output->bar = popen(prog_string, "w");
+    output->bar = output->lemon.write_file;
 
     return ;
 }
@@ -86,7 +173,7 @@ static void outputs_clear(struct bar_state *state)
     int i;
 
     for (i = 0; i < state->output_count; i++) {
-        pclose(state->outputs[i].bar);
+        lemonbar_kill(&state->outputs[i].lemon);
         free(state->outputs[i].name);
     }
 
@@ -121,7 +208,7 @@ static void outputs_load(struct bar_state *state, GSList *outputs)
         dbgprintf("Adding output: %s\n", output->name);
         dbgprintf("At: %dx%d+%d+%d\n", output->width, output->height, output->x, output->y);
 
-        lemonbar_start(output);
+        lemonbar_exec(output);
 
         dbgprintf("lemonbar running on %s\n", output->name);
 

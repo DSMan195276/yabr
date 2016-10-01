@@ -4,10 +4,14 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include <glib/gprintf.h>
+#include <i3ipc-glib/i3ipc-glib.h>
+
 #include "bar_config.h"
 #include "list.h"
 #include "flag.h"
 #include "ws.h"
+#include "lemonbar.h"
 #include "status.h"
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(*(arr)))
@@ -18,10 +22,13 @@ struct bar_color {
 };
 
 struct bar_output {
-    FILE *bar;
     char *name;
+    FILE *bar;
 
     int x, y, width, height;
+
+    struct lemonbar lemon;
+    GIOChannel *cmd_channel;
 };
 
 /*
@@ -42,6 +49,8 @@ struct bar_state {
 
     struct bar_color prev_color;
     int sep_direction, past_first_entry;
+
+    i3ipcConnection *conn;
 };
 
 #define BAR_STATE_INIT(state) \

@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include <glib/gprintf.h>
 #include <i3ipc-glib/i3ipc-glib.h>
@@ -10,21 +12,6 @@
 #include "bar_config.h"
 #include "config.h"
 #include "render.h"
-
-#if 0
-static struct bar_color status_colors[] = {
-    { .fore = COLOR_FORE, .back = COLOR_SEC_B1 },
-    { .fore = COLOR_FORE, .back = COLOR_SEC_B2 },
-    { .fore = COLOR_FORE, .back = COLOR_SEC_B3 },
-    { .fore = 0, .back = 0 }
-};
-
-static struct bar_color status_last_color = {
-    .fore = BAR_COLOR_STATUS_LAST_FORE, .back = BAR_COLOR_STATUS_LAST_BACK
-};
-
-#define STATUS_COLORS_COUNT ((sizeof(status_colors)/sizeof(*status_colors)) - 1)
-#endif
 
 void status_list_add(struct status_list *status_list, struct status *status)
 {
@@ -75,9 +62,11 @@ static void render_color(struct bar_state *state, struct bar_output *output)
     render_color_no_sep(state, output);
 }
 
-static void render_cmd(struct bar_state *state, struct bar_output *output, int button, const char *cmd)
+static void render_cmd(struct bar_state *state, struct bar_output *output, int button, void *key, const char *cmd)
 {
-    fprintf(output->bar, "%%{A%d:%s:}", button, cmd);
+    /* 'key' is a unique id to associate with this cmd. Generally it is a
+     * pointer of some sort, as these are guarenteed unqiue for every object */
+    fprintf(output->bar, "%%{A%d:0x%lx-%s:}", button, (long)key, cmd);
 }
 
 static void render_cmd_end(struct bar_state *state, struct bar_output *output)
@@ -123,7 +112,7 @@ static void render_single_status(struct bar_state *state, struct bar_output *out
     for (i = 0; i < ARRAY_SIZE(status->cmds); i++) {
         if (status->cmds[i].cmd) {
             cmd_count++;
-            render_cmd(state, output, i + 1, status->cmds[i].cmd);
+            render_cmd(state, output, i + 1, status, status->cmds[i].cmd);
         }
     }
 
@@ -151,10 +140,6 @@ static void status_render(struct bar_state *state, struct bar_output *output)
 
         if (flag_test(&status->flags, STATUS_URGENT)) {
             state->color = yabr_config.colors.status_urgent;
-#if 0
-            state->color.fore = BAR_COLOR_STATUS_URGENT_FORE;
-            state->color.back = BAR_COLOR_STATUS_URGENT_BACK;
-#endif
         } else {
             if (is_last)
                 state->color = yabr_config.colors.status_last;
@@ -175,13 +160,6 @@ static void status_render(struct bar_state *state, struct bar_output *output)
 
 static void mode_render(struct bar_state *state, struct bar_output *output)
 {
-#if 0
-    struct bar_color mode_color = {
-        .fore = BAR_COLOR_MODE_FORE,
-        .back = BAR_COLOR_MODE_BACK,
-    };
-#endif
-
     if (!state->mode)
         return ;
 
@@ -194,10 +172,6 @@ static void mode_render(struct bar_state *state, struct bar_output *output)
 static void title_render(struct bar_state *state, struct bar_output *output)
 {
     state->color = yabr_config.colors.title;
-#if 0
-    state->color.fore = BAR_COLOR_TITLE_FORE;
-    state->color.back = BAR_COLOR_TITLE_BACK;
-#endif
     render_color(state, output);
     fprintf(output->bar, " %s ", state->win_title);
 }
@@ -206,37 +180,24 @@ static void ws_list_render(struct bar_state *state, struct bar_output *output)
 {
     char cmdbuf[128];
 
-    render_cmd(state, output, 4, "i3-msg workspace prev");
-    render_cmd(state, output, 5, "i3-msg workspace next");
+    render_cmd(state, output, 4, state, "prev");
+    render_cmd(state, output, 5, state, "next");
 
     struct ws *ws;
     list_foreach_entry(&state->ws_list.list, ws, ws_entry) {
         if (strcmp(ws->output, output->name) != 0)
             continue;
 
-        if (flag_test(&ws->flags, WS_URGENT)) {
+        if (flag_test(&ws->flags, WS_URGENT))
             state->color = yabr_config.colors.wsp_urgent;
-#if 0
-            state->color.fore = BAR_COLOR_WSP_URGENT_FORE;
-            state->color.back = BAR_COLOR_WSP_URGENT_BACK;
-#endif
-        } else if (flag_test(&ws->flags, WS_FOCUSED)) {
+        else if (flag_test(&ws->flags, WS_FOCUSED))
             state->color = yabr_config.colors.wsp_focused;
-#if 0
-            state->color.fore = BAR_COLOR_WSP_FOCUSED_FORE;
-            state->color.back = BAR_COLOR_WSP_FOCUSED_BACK;
-#endif
-        } else {
+        else
             state->color = yabr_config.colors.wsp_unfocused;
-#if 0
-            state->color.fore = BAR_COLOR_WSP_UNFOCUSED_FORE;
-            state->color.back = BAR_COLOR_WSP_UNFOCUSED_BACK;
-#endif
-        }
 
-        snprintf(cmdbuf, sizeof(cmdbuf), "i3-msg workspace %s", ws->name);
+        snprintf(cmdbuf, sizeof(cmdbuf), "switch-%s", ws->name);
 
-        render_cmd(state, output, 1, cmdbuf);
+        render_cmd(state, output, 1, state, cmdbuf);
         render_color(state, output);
 
         fprintf(output->bar, " %s ", ws->name);
@@ -254,13 +215,6 @@ static void ws_list_render(struct bar_state *state, struct bar_output *output)
  */
 static void bar_state_render_output(struct bar_state *state, struct bar_output *output)
 {
-#if 0
-    struct bar_color def_color = {
-        .fore = COLOR_FORE,
-        .back = COLOR_BACK
-    };
-#endif
-
     render_left_align(state, output);
     ws_list_render(state, output);
     mode_render(state, output);
@@ -274,10 +228,6 @@ static void bar_state_render_output(struct bar_state *state, struct bar_output *
         render_center_align(state, output);
         state->sep_direction = 1;
         state->color = yabr_config.colors.centered;
-#if 0
-        state->color.fore = BAR_COLOR_CENTERED_FORE;
-        state->color.back = BAR_COLOR_CENTERED_BACK;
-#endif
         render_color(state, output);
 
         render_single_status(state, output, state->centered);

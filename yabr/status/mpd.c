@@ -96,6 +96,19 @@ static void mpdmon_update_status(struct mpdmon *mpdmon)
 
 static gboolean mpdmon_timeout_check(gpointer data);
 
+static void mpdmon_parse_idle(struct mpdmon *mpdmon, int idle)
+{
+    /*
+     * We check for MPD_IDLE_QUEUE as well as MPD_IDLE_PLAYER because the name
+     * of the current song may have changed. mopidy sends MPD_IDLE_QUEUE when
+     * that happens, and no MPD_IDLE_PLAYER.
+     */
+    if (idle & MPD_IDLE_PLAYER || idle & MPD_IDLE_QUEUE) {
+        mpdmon_update_status(mpdmon);
+        bar_render_global();
+    }
+}
+
 static gboolean mpd_handle_idle(GIOChannel *gio, GIOCondition condition, gpointer data)
 {
     struct mpdmon *mpdmon = data;
@@ -113,15 +126,7 @@ static gboolean mpd_handle_idle(GIOChannel *gio, GIOCondition condition, gpointe
         return FALSE;
     }
 
-    /*
-     * We check for MPD_IDLE_QUEUE as well as MPD_IDLE_PLAYER because the name
-     * of the current song may have changed. mopidy sends MPD_IDLE_QUEUE when
-     * that happens, and no MPD_IDLE_PLAYER.
-     */
-    if (idle & MPD_IDLE_PLAYER || idle & MPD_IDLE_QUEUE) {
-        mpdmon_update_status(mpdmon);
-        bar_render_global();
-    }
+    mpdmon_parse_idle(mpdmon, idle);
 
     mpd_send_idle(mpdmon->conn);
     return TRUE;
@@ -163,6 +168,43 @@ static gboolean mpdmon_timeout_check(gpointer data)
     return TRUE;
 }
 
+static void mpdmon_handle_cmd_toggle(struct status *status, struct cmd_entry *cmd, const char *args)
+{
+    struct mpdmon *mpdmon = container_of(status, struct mpdmon, status);
+
+    dbgprintf("mpd: Toggle pause cmd\n");
+
+    /* Note: mpd is always left in idle mode, so we exit idle, perform our
+     * action, and then enable idle */
+    if (mpdmon->conn) {
+        int idle = mpd_run_noidle(mpdmon->conn);
+
+        mpdmon_parse_idle(mpdmon, idle);
+        mpd_run_toggle_pause(mpdmon->conn);
+
+        mpd_send_idle(mpdmon->conn);
+    }
+}
+
+static void mpdmon_handle_cmd_next(struct status *status, struct cmd_entry *cmd, const char *args)
+{
+    struct mpdmon *mpdmon = container_of(status, struct mpdmon, status);
+
+    dbgprintf("mpd: Next cmd\n");
+
+    /* Note: mpd is always left in idle mode, so we exit idle, perform our
+     * action, and then enable idle */
+    if (mpdmon->conn) {
+        int idle = mpd_run_noidle(mpdmon->conn);
+
+        mpdmon_parse_idle(mpdmon, idle);
+
+        mpd_run_next(mpdmon->conn);
+
+        mpd_send_idle(mpdmon->conn);
+    }
+}
+
 static struct status *mpdmon_status_create(const char *server, int port, int timeout)
 {
     struct mpdmon *mpdmon;
@@ -173,8 +215,14 @@ static struct status *mpdmon_status_create(const char *server, int port, int tim
     mpdmon->server = strdup(server);
     mpdmon->port = port;
     mpdmon->timeout = timeout;
-    mpdmon->status.cmds[0].cmd = strdup("mpc toggle");
-    mpdmon->status.cmds[2].cmd = strdup("mpc next");
+
+    mpdmon->status.cmds[0].id = strdup("toggle");
+    mpdmon->status.cmds[0].cmd = strdup("toggle");
+    mpdmon->status.cmds[0].cmd_handle = mpdmon_handle_cmd_toggle;
+
+    mpdmon->status.cmds[2].id = strdup("next");
+    mpdmon->status.cmds[2].cmd = strdup("next");
+    mpdmon->status.cmds[2].cmd_handle = mpdmon_handle_cmd_next;
 
     flag_set(&mpdmon->status.flags, STATUS_VISIBLE);
 

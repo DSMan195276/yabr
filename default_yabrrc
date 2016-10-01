@@ -84,6 +84,10 @@ right {
         maildir = "/mnt/data/mail/Inbox";
     }
 
+    status tasks {
+        days = "2d";
+    }
+
     status datetime {
         format = "%m-%d-%Y";
         timeout = 300;

@@ -131,9 +131,7 @@ static void version(const char *prog)
 int main(int argc, char **argv)
 {
     char cfg_file[256];
-    i3ipcConnection *conn;
     int ret;
-
 
     if (getenv("HOME"))
         snprintf(cfg_file, sizeof(cfg_file), "%s/.yabrrc", getenv("HOME"));
@@ -187,17 +185,17 @@ int main(int argc, char **argv)
     if (ret)
         return 1;
 
-    conn = i3_mon_setup();
+    yabr_config.state.conn = i3_mon_setup();
 
-    outputs_update(conn, &yabr_config.state);
+    outputs_update(yabr_config.state.conn, &yabr_config.state);
 
-    ws_list_refresh(&yabr_config.state.ws_list, conn);
-    set_initial_title(conn);
+    ws_list_refresh(&yabr_config.state.ws_list, yabr_config.state.conn);
+    set_initial_title(yabr_config.state.conn);
     bar_state_render(&yabr_config.state);
 
-    i3ipc_connection_main(conn);
+    i3ipc_connection_main(yabr_config.state.conn);
 
-    g_object_unref(conn);
+    g_object_unref(yabr_config.state.conn);
 
     ws_list_clear(&yabr_config.state.ws_list);
 

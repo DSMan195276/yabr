@@ -25,6 +25,11 @@ static long alsa_convert_to_percent(long volume, long min, long max)
     return (volume * 100 + (max - min) - 1) / (max - min) + min;
 }
 
+static long alsa_percent_to_volume(long percent, long min, long max)
+{
+    return (percent * (max - min) + min) / 100;
+}
+
 static int alsa_open_mixer(struct alsa *alsa, const char *card, const char *selem)
 {
     int ret;
@@ -98,17 +103,64 @@ static int alsa_is_muted(struct alsa *alsa)
     return !mut;
 }
 
-static void alsa_set_volume_status(struct alsa *alsa)
+static void alsa_set_volume_status_to_percent(struct alsa *alsa, long percent)
 {
     char buf[128];
 
     if (alsa_is_muted(alsa))
         sprintf(buf, "Volume: Muted");
     else
-        sprintf(buf, "Volume: %ld%%", alsa_get_volume(alsa));
+        sprintf(buf, "Volume: %ld%%", percent);
 
     status_change_text(&alsa->status, buf);
     flag_set(&alsa->status.flags, STATUS_VISIBLE);
+}
+
+static void alsa_set_volume_status(struct alsa *alsa)
+{
+    alsa_set_volume_status_to_percent(alsa, alsa_get_volume(alsa));
+}
+
+static void alsa_cmd_volume_up(struct status *status, struct cmd_entry *cmd, const char *arg)
+{
+    struct alsa *alsa = container_of(status, struct alsa, status);
+    long volume, percent, max, min;
+    int inc;
+
+    snd_mixer_selem_get_playback_volume_range(alsa->elem, &min, &max);
+    snd_mixer_selem_get_playback_volume(alsa->elem, 0, &volume);
+
+    percent = alsa_convert_to_percent(volume, min, max);
+
+    inc = atoi(arg);
+
+    percent += inc;
+    if (percent < 0)
+        percent = 0;
+
+    if (percent > 100)
+        percent = 100;
+
+    volume = alsa_percent_to_volume(percent, min, max);
+    snd_mixer_selem_set_playback_volume(alsa->elem, 0, volume);
+    snd_mixer_selem_set_playback_volume(alsa->elem, 1, volume);
+
+    alsa_set_volume_status_to_percent(alsa, percent);
+    bar_render_global();
+
+    return ;
+}
+
+static void alsa_cmd_toggle_mute(struct status *status, struct cmd_entry *cmd, const char *arg)
+{
+    struct alsa *alsa = container_of(status, struct alsa, status);
+
+    snd_mixer_selem_set_playback_switch(alsa->elem, SND_MIXER_SCHN_MONO, alsa_is_muted(alsa));
+
+    alsa_set_volume_status(alsa);
+    bar_render_global();
+
+    return ;
 }
 
 static gboolean alsa_handle_change(GIOChannel *gio, GIOCondition condition, gpointer data)
@@ -125,16 +177,16 @@ static gboolean alsa_handle_change(GIOChannel *gio, GIOCondition condition, gpoi
 
 static void alsa_create_cmds(struct alsa *alsa, const char *mix, const char *card)
 {
-    char buf[128];
+    alsa->status.cmds[3].id  = strdup("volume");
+    alsa->status.cmds[3].cmd = strdup("volume-1");
+    alsa->status.cmds[3].cmd_handle = alsa_cmd_volume_up;
 
-    snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" 1%%+", card, mix);
-    alsa->status.cmds[3].cmd = strdup(buf);
+    /* Maps to the same handle as above command */
+    alsa->status.cmds[4].cmd = strdup("volume--1");
 
-    snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" 1%%-", card, mix);
-    alsa->status.cmds[4].cmd = strdup(buf);
-
-    snprintf(buf, sizeof(buf), "amixer -D \"%s\" sset \"%s\" toggle", card, mix);
-    alsa->status.cmds[0].cmd = strdup(buf);
+    alsa->status.cmds[0].id  = strdup("mute");
+    alsa->status.cmds[0].cmd = strdup("mute");
+    alsa->status.cmds[0].cmd_handle = alsa_cmd_toggle_mute;
 }
 
 static struct status *alsa_status_create(const char *mix, const char *card)

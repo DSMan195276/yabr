@@ -5,8 +5,12 @@
 #include <stdint.h>
 #include "list.h"
 
+struct status;
+
 struct cmd_entry {
+    char *id;
     char *cmd;
+    void (*cmd_handle) (struct status *, struct cmd_entry *, const char *arg);
 };
 
 /* 
