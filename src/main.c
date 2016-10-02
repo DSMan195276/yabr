@@ -73,6 +73,17 @@ static void window_change(i3ipcConnection *conn, i3ipcWindowEvent *e, gpointer d
     bar_state_render(&yabr_config.state);
 }
 
+static void window_close(i3ipcConnection *conn, i3ipcWindowEvent *e, gpointer data)
+{
+    gboolean focused;
+    g_object_get(e->container, "focused", &focused, NULL);
+
+    if (focused)
+        set_window_title("");
+
+    bar_state_render(&yabr_config.state);
+}
+
 static void mode_change(i3ipcConnection *conn, i3ipcGenericEvent *e, gpointer data)
 {
     if (yabr_config.state.mode)
@@ -100,10 +111,14 @@ static i3ipcConnection *i3_mon_setup(void)
     conn = i3ipc_connection_new(NULL, NULL);
 
     i3ipc_connection_on(conn, "workspace::focus", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
+    i3ipc_connection_on(conn, "workspace::init", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
+    i3ipc_connection_on(conn, "workspace::urgent", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
     i3ipc_connection_on(conn, "workspace::empty", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
 
     i3ipc_connection_on(conn, "window::title", g_cclosure_new(G_CALLBACK(window_change), NULL, NULL), NULL);
     i3ipc_connection_on(conn, "window::focus", g_cclosure_new(G_CALLBACK(window_change), NULL, NULL), NULL);
+
+    i3ipc_connection_on(conn, "window::close", g_cclosure_new(G_CALLBACK(window_close), NULL, NULL), NULL);
 
     i3ipc_connection_on(conn, "mode", g_cclosure_new(G_CALLBACK(mode_change), NULL, NULL), NULL);
 
