@@ -20,8 +20,8 @@
 #define COLOR_FORE    (0xFFC5C8C6)   /* Default foreground */
 //#define COLOR_HEAD    (0xFFB5BD68)   /* Background for first element */
 #define COLOR_SEC_B1  (0xFF282A2E)   /* Background for section 1 */
-#define COLOR_SEC_B2  (0xFF454A4F)   /* Background for section 2 */
-#define COLOR_SEC_B3  (0xFF60676E)   /* Background for section 3 */
+#define COLOR_SEC_B2  (0xFF353A3F)   /* Background for section 2 */
+#define COLOR_SEC_B3  (0xFF40474E)   /* Background for section 3 */
 #define COLOR_URGENT  (0xFFCE935F)   /* Background color for mail alert */
 #define COLOR_DISABLE (0xFF1D1F21)   /* Foreground for disable elements */
 //#define COLOR_WSP     (0xFF8C9440)   /* Background for selected workspace */
@@ -67,7 +67,7 @@
 #define BAR_SEP_RIGHTSIDE_SAME ""
 #define BAR_SEP_LEFTSIDE_SAME ""
 
-#define LEMONBAR_FONT "-xos4-terminesspowerline-medium-r-normal--12-120-72-72-c-60-iso10646-1"
+#define LEMONBAR_FONT "-*-terminesspowerline-medium-*-*-*-12-*-*-*-*-*-*-*"
 
 struct yabr_config yabr_config = {
     .debug = NULL,
@@ -100,6 +100,8 @@ struct yabr_config yabr_config = {
     .sep_leftside_same = BAR_SEP_LEFTSIDE_SAME,
 
     .lemonbar_font = LEMONBAR_FONT,
+    .lemonbar_font_size = 12,
+    .lemonbar_on_bottom = 0,
 
     .state = BAR_STATE_INIT(yabr_config.state),
     .descs = {
