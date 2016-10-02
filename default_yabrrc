@@ -1,14 +1,16 @@
 
-var color_back    = 0xFF1D1F21;
-var color_fore    = 0xFFC5C8C6;
-var color_sec_b1  = 0xFF282A2E;
-var color_sec_b2  = 0xFF454A4F;
-var color_sec_b3  = 0xFF60676E;
-var color_urgent  = 0xFFCE935F;
-var color_disable = 0xFF1D1F21;
+var alpha         = 0xD0000000;
 
-var color_head    = 0xFFBD6871;
-var color_wsp     = 0xFF944040;
+var color_back    = 0x001D1F21 | alpha;
+var color_fore    = 0x00C5C8C6 | alpha;
+var color_sec_b1  = 0x00282A2E | alpha;
+var color_sec_b2  = 0x00353A3F | alpha;
+var color_sec_b3  = 0x0040474E | alpha;
+var color_urgent  = 0x00CE935F | alpha;
+var color_disable = 0x001D1F21 | alpha;
+
+var color_head    = 0x00BD6871 | alpha;
+var color_wsp     = 0x00944040 | alpha;
 
 var wsp_fore = color_wsp;
 var wsp_back = color_head;
@@ -37,8 +39,10 @@ var status_urgent_back = color_urgent;
 var centered_fore = color_back;
 var centered_back = color_head;
 
-var default_back = 0xFF1D1F21;
-var default_fore = 0xFFC5C8C6;
+var default_back = 0x001D1F21 | alpha;
+var default_fore = 0x00C5C8C6 | alpha;
+
+var bottom = false;
 
 wsp = { wsp_fore, wsp_back };
 wsp_focused = { wsp_focused_fore, wsp_focused_back };
@@ -57,12 +61,12 @@ sections = [
     { color_fore, color_sec_b3 }
 ];
 
-lemonbar_font = "-xos4-terminesspowerline-medium-r-normal--12-120-72-72-c-60-iso10646-1";
+lemonbar_font = "-*-terminesspowerline-medium-*-*-*-12-*-*-*-*-*-*-*";
+lemonbar_font_size = 16;
 
+lemonbar_on_bottom = bottom;
 
-use_separator = 1;
-
-#define BAR_USE_SEP 1
+use_separator = true;
 
 sep_rightside = "";
 sep_leftside = "";
@@ -90,16 +94,16 @@ right {
         card = "default";
     }
 
+    status tasks {
+        days = "2d";
+    }
+
     status battery {
         id = "BAT0";
     }
 
     status mail {
         maildir = "/mnt/data/mail/Inbox";
-    }
-
-    status tasks {
-        days = "2d";
     }
 
     status datetime {
