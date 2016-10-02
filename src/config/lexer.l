@@ -35,21 +35,33 @@
 ";" { return ';'; }
 "[" { return '['; }
 "]" { return ']'; }
+"(" { return '('; }
+")" { return ')'; }
+"|" { return '|'; }
+"&" { return '&'; }
+"*" { return '*'; }
+"/" { return '/'; }
+"+" { return '+'; }
+"-" { return '-'; }
+"!" { return '!'; }
 
 [0-9]+ {
     yylval.ival = atoi(yytext);
     return TOK_INTEGER;
 }
 
+0x[a-fA-F0-9]{8} {
+    sscanf(yytext, "%x", &yylval.ival);
+    return TOK_INTEGER;
+}
+
+(true|TRUE) { yylval.ival = 1; return TOK_INTEGER; }
+(false|FALSE) { yylval.ival = 0; return TOK_INTEGER; }
+
 "status" { return TOK_STATUS; }
 "right" { return TOK_RIGHT; }
 "center" { return TOK_CENTER; }
 "var" { return TOK_VAR; }
-
-(0x)?[a-fA-F0-9]{8} {
-    sscanf(yytext, "%x", &yylval.color);
-    return TOK_COLOR;
-}
 
 [a-zA-Z0-9_\-]+ {
     yylval.str = strdup(yytext);

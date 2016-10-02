@@ -1,6 +1,7 @@
 %{
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "config.h"
 #include "list.h"
@@ -16,14 +17,16 @@ void yyerror(struct parse_state *state, const char *str);
 list_head_t variable_list = LIST_HEAD_INIT(variable_list);
 
 struct variable *variable_find(const char *id);
+int global_assign_color_pair(const char *id, struct bar_color pair);
+int global_assign_integer(const char *id, uint32_t);
+int global_assign_string(const char *id, char *val);
 
 #define YYERROR_VERBOSE
 %}
 
 %union {
     char *str;
-    int ival;
-    uint32_t color;
+    uint32_t ival;
     struct bar_color color_pair;
     struct status *status;
 
@@ -43,7 +46,6 @@ struct variable *variable_find(const char *id);
 
 %token <str> TOK_IDENT
 %token <str> TOK_STRING
-%token <color> TOK_COLOR
 %token TOK_STATUS
 %token TOK_CENTER
 %token TOK_RIGHT
@@ -52,26 +54,25 @@ struct variable *variable_find(const char *id);
 %token TOK_EOF TOK_ERR
 
 %type <status> status
-%type <color> color
-%type <color> color_or_var
+%type <ival> integer;
+%type <ival> integer_or_var;
 %type <color_pair> color_pair
 %type <color_pair> color_pair_or_var
 %type <color_pair_list> color_pair_list
 %type <var> variable_type
 
+%right '!'
+%left  '|' '&'
+%left  '*' '/'
+%left  '+' '-'
+
 %start config_file
 
 %%
 
-color:
-     TOK_COLOR {
-        $$ = $1;
-     }
-     ;
-
-color_or_var:
-     color
-     | TOK_IDENT {
+integer_or_var:
+    integer
+    | TOK_IDENT {
         struct variable *var;
 
         var = variable_find($1);
@@ -82,19 +83,41 @@ color_or_var:
             YYABORT;
         }
 
-        if (var->type != VAR_COLOR) {
-            fprintf(stderr, "%s: %d: Variable named \"%s\" is not a color.\n",
+        if (var->type != VAR_INT) {
+            fprintf(stderr, "%s: %d: Variable named \"%s\" is not a color/integer.\n",
                 yabr_config.config_file, @1.first_line, $1);
             YYABORT;
         }
         
-        $$ = var->data.color;
+        $$ = var->data.i;
         free($1);
-     }
-     ;
+    }
+    ;
+
+integer:
+    TOK_INTEGER
+    | integer_or_var '|' integer_or_var {
+        $$ = $1 | $3;
+    }
+    | integer_or_var '&' integer_or_var {
+        $$ = $1 & $3;
+    }
+    | integer_or_var '*' integer_or_var {
+        $$ = $1 * $3;
+    }
+    | integer_or_var '/' integer_or_var {
+        $$ = $1 / $3;
+    }
+    | '!' integer_or_var {
+        $$ = !$2;
+    }
+    | '(' integer_or_var ')' {
+        $$ = $2;
+    }
+    ;
 
 color_pair:
-    '{' color_or_var ',' color_or_var '}' {
+    '{' integer_or_var ',' integer_or_var '}' {
         $$.fore = $2;
         $$.back = $4;
     }
@@ -128,8 +151,7 @@ color_pair_or_var:
 
 variable_type:
     TOK_STRING    { $$.type = VAR_STRING;     $$.data.str = $1; }
-    | TOK_INTEGER { $$.type = VAR_INT;        $$.data.i = $1; }
-    | color       { $$.type = VAR_COLOR;      $$.data.color = $1; }
+    | integer     { $$.type = VAR_INT;        $$.data.i = $1; }
     | color_pair  { $$.type = VAR_COLOR_PAIR; $$.data.color_pair = $1; }
     | TOK_IDENT {
         struct variable *var;
@@ -149,7 +171,6 @@ variable_type:
             $$.data.str = strdup(var->data.str);
             break;
 
-        case VAR_COLOR:
         case VAR_COLOR_PAIR:
         case VAR_INT:
             $$.data = var->data;
@@ -182,7 +203,7 @@ status_property:
         free($1);
         free($3);
     }
-    | TOK_IDENT '=' TOK_INTEGER ';' {
+    | TOK_IDENT '=' integer ';' {
         if (status_config_set_int(state->items, $1, $3) == -1) {
             fprintf(stderr, "%s: %d: Status \"%s\" does not have integer item \"%s\"\n",
                 yabr_config.config_file, @1.first_line, state->cur_status->name, $1);
@@ -308,55 +329,23 @@ block:
 
 global_assignment:
     TOK_IDENT '=' TOK_STRING ';' {
-        if (strcmp($1, "sep_rightside") == 0) {
-            yabr_config.sep_rightside = $3;
-        } else if (strcmp($1, "sep_leftside") == 0) {
-            yabr_config.sep_leftside = $3;
-        } else if (strcmp($1, "sep_rightside_same") == 0) {
-            yabr_config.sep_rightside_same = $3;
-        } else if (strcmp($1, "sep_leftside_same") == 0) {
-            yabr_config.sep_leftside_same = $3;
-        } else if (strcmp($1, "lemonbar_font") == 0) {
-            yabr_config.lemonbar_font = $3;
-        } else {
+        if (global_assign_string($1, $3) == -1) {
             fprintf(stderr, "%s: %d: Unknown string \"%s\"\n", yabr_config.config_file, @1.first_line, $1);
             YYABORT;
         }
 
         free($1);
     }
-    | TOK_IDENT '=' TOK_INTEGER ';' {
-        if (strcmp($1, "use_separator") == 0) {
-            yabr_config.use_separator = $3;
-        } else {
+    | TOK_IDENT '=' integer ';' {
+        if (global_assign_integer($1, $3) == -1) {
             fprintf(stderr, "%s: %d: Unknown integer \"%s\"\n", yabr_config.config_file, @1.first_line, $1);
             YYABORT;
         }
 
         free($1);
     }
-    | TOK_IDENT '=' color_pair_or_var ';' {
-        if (strcmp($1, "wsp") == 0) {
-            yabr_config.colors.wsp = $3;
-        } else if (strcmp($1, "wsp_focused") == 0) {
-            yabr_config.colors.wsp_focused = $3;
-        } else if (strcmp($1, "wsp_unfocused") == 0) {
-            yabr_config.colors.wsp_unfocused = $3;
-        } else if (strcmp($1, "wsp_urgent") == 0) {
-            yabr_config.colors.wsp_urgent = $3;
-        } else if (strcmp($1, "title") == 0) {
-            yabr_config.colors.title = $3;
-        } else if (strcmp($1, "status_last") == 0) {
-            yabr_config.colors.status_last = $3;
-        } else if (strcmp($1, "mode") == 0) {
-            yabr_config.colors.mode = $3;
-        } else if (strcmp($1, "status_urgent") == 0) {
-            yabr_config.colors.status_urgent = $3;
-        } else if (strcmp($1, "centered") == 0) {
-            yabr_config.colors.centered = $3;
-        } else if (strcmp($1, "def") == 0) {
-            yabr_config.colors.def = $3;
-        } else {
+    | TOK_IDENT '=' color_pair ';' {
+        if (global_assign_color_pair($1, $3) == -1) {
             fprintf(stderr, "%s: %d: Unknown color pair \"%s\"\n", yabr_config.config_file, @1.first_line, $1);
             YYABORT;
         }
@@ -372,6 +361,42 @@ global_assignment:
             YYABORT;
         }
 
+        free($1);
+    }
+    | TOK_IDENT '=' TOK_IDENT ';' {
+        struct variable *var = variable_find($3);
+
+        if (!var) {
+            fprintf(stderr, "%s: %d: No variable named \"%s\"\n",
+                yabr_config.config_file, @1.first_line, $1);
+            YYABORT;
+        }
+
+        switch (var->type) {
+        case VAR_INT:
+            if (global_assign_integer($1, var->data.i) == -1) {
+                fprintf(stderr, "%s: %d: Unknown integer \"%s\"\n", yabr_config.config_file, @1.first_line, $1);
+                YYABORT;
+            }
+            break;
+
+        case VAR_STRING:
+            if (global_assign_string($1, var->data.str) == -1) {
+                fprintf(stderr, "%s: %d: Unknown string \"%s\"\n", yabr_config.config_file, @1.first_line, $1);
+                YYABORT;
+            }
+            break;
+
+        case VAR_COLOR_PAIR:
+            if (global_assign_color_pair($1, var->data.color_pair) == -1) {
+                fprintf(stderr, "%s: %d: Unknown color_pair \"%s\"\n", yabr_config.config_file, @1.first_line, $1);
+                YYABORT;
+            }
+            break;
+
+        }
+
+        free($3);
         free($1);
     }
     ;
@@ -393,7 +418,6 @@ config_file: %empty
                 break;
 
             case VAR_INT:
-            case VAR_COLOR:
             case VAR_COLOR_PAIR:
                 break;
             }
@@ -422,3 +446,67 @@ struct variable *variable_find(const char *id)
 
     return NULL;
 }
+
+int global_assign_color_pair(const char *id, struct bar_color pair)
+{
+    if (strcmp(id, "wsp") == 0) {
+        yabr_config.colors.wsp = pair;
+    } else if (strcmp(id, "wsp_focused") == 0) {
+        yabr_config.colors.wsp_focused = pair;
+    } else if (strcmp(id, "wsp_unfocused") == 0) {
+        yabr_config.colors.wsp_unfocused = pair;
+    } else if (strcmp(id, "wsp_urgent") == 0) {
+        yabr_config.colors.wsp_urgent = pair;
+    } else if (strcmp(id, "title") == 0) {
+        yabr_config.colors.title = pair;
+    } else if (strcmp(id, "status_last") == 0) {
+        yabr_config.colors.status_last = pair;
+    } else if (strcmp(id, "mode") == 0) {
+        yabr_config.colors.mode = pair;
+    } else if (strcmp(id, "status_urgent") == 0) {
+        yabr_config.colors.status_urgent = pair;
+    } else if (strcmp(id, "centered") == 0) {
+        yabr_config.colors.centered = pair;
+    } else if (strcmp(id, "def") == 0) {
+        yabr_config.colors.def = pair;
+    } else {
+        return -1;
+    }
+
+    return 0;
+}
+
+int global_assign_integer(const char *id, uint32_t integer)
+{
+    if (strcmp(id, "use_separator") == 0) {
+        yabr_config.use_separator = integer;
+    } else if (strcmp(id, "lemonbar_font_size") == 0) {
+        yabr_config.lemonbar_font_size = integer;
+    } else if (strcmp(id, "lemonbar_on_bottom") == 0) {
+        yabr_config.lemonbar_on_bottom = integer;
+    } else {
+        return -1;
+    }
+
+    return 0;
+}
+
+int global_assign_string(const char *id, char *str)
+{
+    if (strcmp(id, "sep_rightside") == 0) {
+        yabr_config.sep_rightside = str;
+    } else if (strcmp(id, "sep_leftside") == 0) {
+        yabr_config.sep_leftside = str;
+    } else if (strcmp(id, "sep_rightside_same") == 0) {
+        yabr_config.sep_rightside_same = str;
+    } else if (strcmp(id, "sep_leftside_same") == 0) {
+        yabr_config.sep_leftside_same = str;
+    } else if (strcmp(id, "lemonbar_font") == 0) {
+        yabr_config.lemonbar_font = str;
+    } else {
+        return -1;
+    }
+
+    return 0;
+}
+

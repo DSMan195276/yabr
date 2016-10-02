@@ -17,14 +17,12 @@ int yyparse(struct parse_state *state);
 enum var_type {
     VAR_STRING,
     VAR_INT,
-    VAR_COLOR,
     VAR_COLOR_PAIR,
 };
 
 union var_data {
     char *str;
-    int i;
-    uint32_t color;
+    uint32_t i;
     struct bar_color color_pair;
 };
 
