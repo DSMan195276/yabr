@@ -58,6 +58,8 @@ static void battery_get_state(struct battery *battery)
                 battery->state = POWER_STATE_CHARGED;
             else if (strcmp(tmp, "Discharging") == 0)
                 battery->state = POWER_STATE_DISCHARGING;
+            else /* Various states like "Unknown" are considered charging */
+                battery->state = POWER_STATE_CHARGING;
 
         } else if (sscanf(line, "POWER_SUPPLY_CHARGE_NOW=%ld\n", &remain_capacity) == 1) {
             continue;
@@ -76,13 +78,22 @@ static void battery_get_state(struct battery *battery)
         goto cleanup_state;
     }
 
+    if (battery->state == POWER_STATE_CHARGING && current_rate == 0)
+        battery->state = POWER_STATE_CHARGED;
+
     switch (battery->state) {
     case POWER_STATE_CHARGING:
-        battery->minutes_left = ((full_capacity - remain_capacity) * 60) / current_rate;
+        if (current_rate)
+            battery->minutes_left = ((full_capacity - remain_capacity) * 60) / current_rate;
+        else
+            battery->minutes_left = 0;
         break;
 
     case POWER_STATE_DISCHARGING:
-        battery->minutes_left = (remain_capacity * 60) / current_rate;
+        if (current_rate)
+            battery->minutes_left = (remain_capacity * 60) / current_rate;
+        else
+            battery->minutes_left = 0;
         dbgprintf("Battery: Remain cap: %ld, current: %ld, minutes: %ld\n", remain_capacity, current_rate, battery->minutes_left);
         break;
 
