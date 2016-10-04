@@ -7,7 +7,6 @@
 #include <sys/time.h>
 
 #include <glib/gprintf.h>
-#include <i3ipc-glib/i3ipc-glib.h>
 
 #include "bar_config.h"
 #include "ws.h"
@@ -20,111 +19,6 @@
 void bar_render_global(void)
 {
     bar_state_render(&yabr_config.state);
-}
-
-static void set_window_title(const char *title)
-{
-    if (&yabr_config.state.win_title)
-        free(yabr_config.state.win_title);
-
-    if (title)
-        yabr_config.state.win_title = strdup(title);
-    else
-        yabr_config.state.win_title = strdup("");
-}
-
-static void set_initial_title(i3ipcConnection *conn)
-{
-    i3ipcCon *con, *focused;
-
-    con = i3ipc_connection_get_tree(conn, NULL);
-
-    focused = i3ipc_con_find_focused(con);
-    if (focused)
-        set_window_title(i3ipc_con_get_name(focused));
-    else
-        set_window_title("");
-
-    g_object_unref(con);
-}
-
-static void workspace_change(i3ipcConnection *conn, i3ipcWorkspaceEvent *e, gpointer data)
-{
-    i3ipcCon *con;
-
-    ws_list_refresh(&yabr_config.state.ws_list, conn);
-
-    con = i3ipc_con_find_focused(e->current);
-    if (con)
-        set_window_title(i3ipc_con_get_name(con));
-    else
-        set_window_title("");
-
-    bar_state_render(&yabr_config.state);
-}
-
-static void window_change(i3ipcConnection *conn, i3ipcWindowEvent *e, gpointer data)
-{
-    if (e->container)
-        set_window_title(i3ipc_con_get_name(e->container));
-    else
-        set_window_title("");
-
-    bar_state_render(&yabr_config.state);
-}
-
-static void window_close(i3ipcConnection *conn, i3ipcWindowEvent *e, gpointer data)
-{
-    gboolean focused;
-    g_object_get(e->container, "focused", &focused, NULL);
-
-    if (focused)
-        set_window_title("");
-
-    bar_state_render(&yabr_config.state);
-}
-
-static void mode_change(i3ipcConnection *conn, i3ipcGenericEvent *e, gpointer data)
-{
-    if (yabr_config.state.mode)
-        free(yabr_config.state.mode);
-
-    if (strcmp(e->change, "default") == 0)
-        yabr_config.state.mode = NULL;
-    else
-        yabr_config.state.mode = strdup(e->change);
-
-    bar_state_render(&yabr_config.state);
-}
-
-static void output_change(i3ipcConnection *conn, i3ipcGenericEvent *e, gpointer data)
-{
-    outputs_update(conn, &yabr_config.state);
-
-    bar_state_render(&yabr_config.state);
-}
-
-static i3ipcConnection *i3_mon_setup(void)
-{
-    i3ipcConnection *conn;
-
-    conn = i3ipc_connection_new(NULL, NULL);
-
-    i3ipc_connection_on(conn, "workspace::focus", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
-    i3ipc_connection_on(conn, "workspace::init", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
-    i3ipc_connection_on(conn, "workspace::urgent", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
-    i3ipc_connection_on(conn, "workspace::empty", g_cclosure_new(G_CALLBACK(workspace_change), NULL, NULL), NULL);
-
-    i3ipc_connection_on(conn, "window::title", g_cclosure_new(G_CALLBACK(window_change), NULL, NULL), NULL);
-    i3ipc_connection_on(conn, "window::focus", g_cclosure_new(G_CALLBACK(window_change), NULL, NULL), NULL);
-
-    i3ipc_connection_on(conn, "window::close", g_cclosure_new(G_CALLBACK(window_close), NULL, NULL), NULL);
-
-    i3ipc_connection_on(conn, "mode", g_cclosure_new(G_CALLBACK(mode_change), NULL, NULL), NULL);
-
-    i3ipc_connection_on(conn, "output", g_cclosure_new(G_CALLBACK(output_change), NULL, NULL), NULL);
-
-    return conn;
 }
 
 static void usage(const char *prog)
@@ -201,17 +95,17 @@ int main(int argc, char **argv)
     if (ret)
         return 1;
 
-    yabr_config.state.conn = i3_mon_setup();
+    i3_state_setup(&yabr_config.state);
 
-    outputs_update(yabr_config.state.conn, &yabr_config.state);
+    outputs_update(&yabr_config.state.i3_state, &yabr_config.state);
 
-    ws_list_refresh(&yabr_config.state.ws_list, yabr_config.state.conn);
-    set_initial_title(yabr_config.state.conn);
+    ws_list_refresh(&yabr_config.state.ws_list, &yabr_config.state.i3_state);
+    i3_state_update_title(&yabr_config.state);
     bar_state_render(&yabr_config.state);
 
-    i3ipc_connection_main(yabr_config.state.conn);
+    i3_state_main(&yabr_config.state);
 
-    g_object_unref(yabr_config.state.conn);
+    i3_state_close(&yabr_config.state);
 
     ws_list_clear(&yabr_config.state.ws_list);
 

@@ -44,7 +44,6 @@ var default_fore = 0x00C5C8C6 | alpha;
 
 var bottom = false;
 
-wsp = { wsp_fore, wsp_back };
 wsp_focused = { wsp_focused_fore, wsp_focused_back };
 wsp_unfocused = { wsp_unfocused_fore, wsp_unfocused_back };
 wsp_urgent = { wsp_urgent_fore, wsp_urgent_back };
@@ -53,7 +52,7 @@ status_last = { status_last_fore, status_last_back };
 mode = { mode_fore, mode_back };
 status_urgent = { status_urgent_fore, status_last_back };
 centered = { centered_fore, centered_back };
-def = { default_fore, default_back };
+background = { default_fore, default_back };
 
 sections = [
     { color_fore, color_sec_b1 },

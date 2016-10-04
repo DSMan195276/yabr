@@ -1,6 +1,8 @@
 #ifndef INCLUDE_OUTPUTS_H
 #define INCLUDE_OUTPUTS_H
 
-void outputs_update(i3ipcConnection *conn, struct bar_state *state);
+#include "i3.h"
+
+void outputs_update(struct i3_state *i3, struct bar_state *state);
 
 #endif

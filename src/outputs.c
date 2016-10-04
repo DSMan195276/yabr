@@ -8,12 +8,12 @@
 #include <inttypes.h>
 
 #include <glib/gprintf.h>
-#include <i3ipc-glib/i3ipc-glib.h>
 
 #include "bar_config.h"
 #include "ws.h"
 #include "render.h"
 #include "config.h"
+#include "i3.h"
 #include "lemonbar.h"
 #include "status.h"
 
@@ -219,9 +219,9 @@ static void outputs_load(struct bar_state *state, GSList *outputs)
     state->output_count = count;
 }
 
-void outputs_update(i3ipcConnection *conn, struct bar_state *state)
+void outputs_update(struct i3_state *i3, struct bar_state *state)
 {
-    GSList *outputs = i3ipc_connection_get_outputs(conn, NULL);
+    GSList *outputs = i3ipc_connection_get_outputs(i3->conn, NULL);
 
     dbgprintf("Outputs update..\n");
 

@@ -5,12 +5,12 @@
 #include <stdint.h>
 
 #include <glib/gprintf.h>
-#include <i3ipc-glib/i3ipc-glib.h>
 
 #include "bar_config.h"
 #include "list.h"
 #include "flag.h"
 #include "ws.h"
+#include "i3.h"
 #include "lemonbar.h"
 #include "status.h"
 
@@ -50,7 +50,7 @@ struct bar_state {
     struct bar_color prev_color;
     int sep_direction, past_first_entry;
 
-    i3ipcConnection *conn;
+    struct i3_state i3_state;
 };
 
 #define BAR_STATE_INIT(state) \

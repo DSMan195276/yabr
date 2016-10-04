@@ -1,12 +1,11 @@
 #ifndef INCLUDE_WC_H
 #define INCLUDE_WC_H
 
-#include <i3ipc-glib/i3ipc-glib.h>
-
 #include <stdint.h>
 
 #include "list.h"
 #include "flag.h"
+#include "i3.h"
 
 struct bar_state;
 
@@ -53,7 +52,7 @@ static inline void ws_list_init(struct ws_list *ws_list)
 void ws_clear(struct ws *);
 void ws_list_clear(struct ws_list *);
 
-int ws_list_refresh(struct ws_list *, i3ipcConnection *);
+int ws_list_refresh(struct ws_list *, struct i3_state *);
 
 void ws_next(struct bar_state *, const char *output);
 void ws_prev(struct bar_state *, const char *output);

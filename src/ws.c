@@ -34,13 +34,13 @@ void ws_list_clear(struct ws_list *wslist)
     return ;
 }
 
-int ws_list_refresh(struct ws_list *wslist, i3ipcConnection *conn)
+int ws_list_refresh(struct ws_list *wslist, struct i3_state *i3)
 {
     GSList *l, *list;
 
     ws_list_clear(wslist);
 
-    list = i3ipc_connection_get_workspaces(conn, NULL);
+    list = i3ipc_connection_get_workspaces(i3->conn, NULL);
 
     for (l = list; l; l = l->next) {
         struct ws *ws;
@@ -77,7 +77,7 @@ void ws_switch(struct bar_state *state, const char *ws)
 
     snprintf(cmd, sizeof(cmd), "workspace %s", ws);
 
-    res = i3ipc_connection_message(state->conn, I3IPC_MESSAGE_TYPE_COMMAND, cmd, NULL);
+    res = i3ipc_connection_message(state->i3_state.conn, I3IPC_MESSAGE_TYPE_COMMAND, cmd, NULL);
 
     dbgprintf("cmd: %s, result: %s\n", cmd, res);
 
