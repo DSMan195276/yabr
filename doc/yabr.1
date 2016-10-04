@@ -1,0 +1,190 @@
+.TH yabr 1
+.SH NAME
+yabr \- Yet Another Bar Replacement
+.SH SYNOPSIS
+.B yabr
+[\fB\-vh\fR]
+[\fB\-c\fR \fIConfig-File\fR]
+[\fB\-c\fR \fILog-File\fR]
+.SH DESCRIPTION
+A replacement bar, intended to be used with i3. It spans the top or bottom of the screen, and displays workspace, current window title, and other configurable status information.
+.SH OPTIONS
+.TP
+.BR \-c " " \fIConfig-File\fR
+Change the file to read for configuration information. The default configuration file is ~/.yabrrc
+.TP
+.BR \-l " " \fILog-File\fR
+Change the file to write logging information too. Default is standard-error.
+.TP
+.BR \-v
+Display version information.
+.TP
+.BR \-h
+Display help.
+.SH CONFIGURATION
+yabr will read information information from ~/.yabrrc, or the config-file specified in the arguments. The file consists of ; dilimited lines, and blocks. An example configuration file should have been provided with this distribution.
+.SS Types
+The yabr configuration is a 'typed' language - every setting has a paticular type of data that can be assigned to it, and variables created via the var command are only allowed to have one type of data assigned to them. The types are listed below:
+.TP
+.B Integer = \fIvalue\fR
+A 32-bit integer type. Integers are used to hold configuration information such as port number, and also 32-bit colors in ARGB format. Commands expecting a color expect integers. Integers can be written in decimal, or hexadecimal if you prepend 0x. The identifiers \fBtrue\fR and \fBfalse\fR expand out to the integers 1 and 0, respectively.
+.TP
+.B Color-Pair = { \fIcolor1\fR, \fIcolor2\fR }
+A pair of 32-bit Integers, each one a color in ARGB format. Written in the form "{ color1, color2 }".
+.TP
+.B Color-Pair-List = [ \fIcolor-pair1\fR, \fIcolor-pair2\fR, ... ]
+A list of color-pairs of arbitrary length.
+.TP
+.B String = \fI"sequence"\fR
+A quoted sequence of characters.
+
+
+.SS Global Options
+.TP
+.B lemonbar_font = \fIString\fR
+A String that will be passed to lemonbar for use as the bar's font.
+.TP
+.B lemonbar_font_size = \fIInteger\fR
+The height of the bar.
+.TP
+.B lemonbar_on_bottom = \fIInteger\fR
+The height of the bar. If set to 1 (\fBtrue\fR) then the bar will be placed on the bottom of the screen.
+.TP
+.B use_separator = \fIInteger\fR
+Indicates whether or not a separator should be used, with 1 (\fBtrue\fR) indicating yes.
+.TP
+.B sep_rightside = \fIString\fR
+This String is printed inbetween 'blocks' where the color changes. This separator is printed on the right side of the screen. For Powerline, this is the 'left facing' full arrow. (Arrows face inward).
+.TP
+.B sep_leftside = \fIString\fR
+This String is printed inbetween 'blocks' where the color changes. This separator is printed on the left side of the screen. For Powerline, this is the 'right facing' full arrow (Arrows face inward).
+.TP
+.B sep_leftside_same = \fIString\fR
+This String is printed inbetween 'blocks' where the color doesn't change. This separator is printed on the left side of the screen. For Powerline, this is the 'right facing' arrow (Arrows face inward).
+.TP
+.B sep_rightside_same = \fIString\fR
+This String is printed inbetween 'blocks' where the color doesn't change. This separator is printed on the right side of the screen. For Powerline, this is the 'left facing' arrow (Arrows face inward).
+
+.TP
+.B wsp_unfocused = \fIColor-Pair\fR
+The Color-Pair used to print the names of workspaces which are not currently focused.
+.TP
+.B wsp_focused = \fIColor-Pair\fR
+The Color-Pair used to print the name of the currently focused workspace.
+.TP
+.B wsp_urgent = \fIColor-Pair\fR
+The Color-Pair used to print the names of workspaces marked urgent.
+.TP
+.B title = \fIColor-Pair\fR
+The Color-Pair used to print the title of the current window.
+.TP
+.B status_last = \fIColor-Pair\fR
+The Color-Pair used for the last status on the right side of the screen.
+.TP
+.B mode = \fIColor-Pair\fR
+The Color-Pair used for displaying the current i3 mode.
+.TP
+.B status_urgent = \fIColor-Pair\fR
+The Color-Pair used for displaying a status flagged as urgent.
+.TP
+.B centered = \fIColor-Pair\fR
+The Color-Pair used for displaying the centered status (If there is one)
+.TP
+.B centered = \fIColor-Pair\fR
+The Color-Pair used for displaying the centered status (If there is one)
+.TP
+.B background = \fIColor-Pair\fR
+The Color-Pair used as the background for the bar. This color is displayed in any empty space.
+.TP
+.B sections = \fIColor-Pair-List\fR
+A list of Color-Pairs which are used to render the status's on the right side of the bar. This list will be rotated through to select the color, thus this list can be as long or as short as you want. If you supply three Color-Pairs, then the 4th status will be rendered using the 1st, the 5th with the 2nd, etc.
+
+.SS Blocks
+Blocks introduce sections which can contain more options pertaining to the block they exist in. Blocks are defined by the blocks name, followed by { }, with any extra parameters inside the { }.
+.TP
+.B status \fIName\fR \fI[Block]\fR
+This block is used to define a status block. To define a status of type \fIName\fR, you use "status Name { }". Parameters for this status are placed inside the { }. The supported types of status's are listed below.
+.TP
+.B center \fI[Block]\fR
+A block with a single status contained inside. This status will have its contents rendered in the center of the bar.
+.TP
+.B right \fI[Block]\fR
+A block with multiple statu's contained inside. Each of these status's is rendered in order on the right side of the screen.
+
+
+.SS Status alsa
+Used to display the current volume of an alsa mixer.
+.TP
+.B mixer = \fIString\fR
+The name of the Alsa mixer to display the volume of.
+.TP
+.B card = \fICard\fR
+The name of the card that the mixer uses.
+
+
+.SS Status battery
+Used to display the current status of a battery, such as 'Charged', 'Charging', and 'Discharging'. It also displays the amount of time left when discharging.
+.TP
+.B id = \fIString\fR
+The 'id' for the battery to display. Normally this is BAT0. This name coresponds to a directory in /sys/class/power_supply/
+.TP
+.B timeout = \fItimeout\fR
+The number of seconds between updates for the battery state.
+
+
+.SS Status datetime
+Used to display the current date or time in a status. The format string controls what parts of the date/time are displayed, and how.
+.TP
+.B format = \fIString\fR
+The format used to display the time. This is passed to strftime, so formatting codes can be found by checking the man page for strftime.
+.TP
+.B timeout = \fItimeout\fR
+The number of seconds between updates to the datetime status.
+
+
+.SS Status mail
+Used to report new mail in a MailDir formatted mailbox. inotify is used to monitor for changes. Note: The status is left hidden when there is no new mail.
+.TP
+.B name = \fIString\fR
+The 'name' of the mailbox - for display purposes only.
+.TP
+.B maildir = \fIString\fR
+The path to the MailDir mailbox.
+
+
+.SS Status mpd
+Monitors and displays the current mpd state.
+.TP
+.B server = \fIString\fR
+Name or IP address of the mpd server to connect to.
+.TP
+.B port = \fIPort\fR
+The port number for connecting to the mpd server.
+.TP
+.B timeout = \fIInteger\fR
+When not connected, this is the number of seconds to wait before attempting to connect again.
+
+.SS Status tasks
+Used to output the number of upcomming tasks for taskwarrior.
+.TP
+.B days = \fIString\fR
+A String such as "2d", "5d" which is passed to 'task' to indicate how many days forward to check tasks for.
+.TP
+.B tag = \fIString\fR
+If set, it only checks tasks marked with the specified tag.
+.TP
+.B timeout = \fIInteger\fR
+The number of seconds between updates.
+
+
+.SS Status wireless
+Displays the state of a wireless interface
+.TP
+.B iface = \fIString\fR
+The wireless interface to watch (Such as wlan0, or wlp3s0, etc.)
+
+
+.SH AUTHOR
+Written by Matthew Kilgore
+.SH REPORTING BUGS
+Bugs should be reported to the github project at: http://github.com/DSMan195276/yabr
