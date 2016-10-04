@@ -110,6 +110,8 @@ install:
 	$(Q)mkdir -p $(BINDIR)
 	@echo " INSTALL yabr"
 	$(Q)install -m 775 ./bin/yabr $(BINDIR)
+	@echo " INSTALL doc"
+	$(Q)install -m 775 ./doc/yabr.1 $(MAN1DIR)
 	@echo " yabr Installation done"
 
 dist: clean
