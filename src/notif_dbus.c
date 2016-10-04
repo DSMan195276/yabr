@@ -12,7 +12,6 @@ static gboolean notify_timeout(gpointer data)
 {
     struct notif_dbus *dbus = data;
 
-    dbgprintf("notify_timeout triggered...\n");
     dbus->msg_timeout_count--;
     if (dbus->msg_timeout_count == 0) {
         dbus_message_unref(dbus->cur_message);
@@ -132,14 +131,10 @@ static gboolean dbus_handle(GIOChannel *gio, GIOCondition condition, gpointer da
     struct notif_dbus *dbus = data;
     DBusMessage *msg;
 
-    dbgprintf("dbus_handle\n");
-
     dbus_connection_read_write(dbus->conn, 0);
     while ((msg = dbus_connection_pop_message(dbus->conn)) != NULL) {
-        dbgprintf("dbus: msg\n");
 
         if (dbus_message_is_method_call(msg, "org.freedesktop.Notifications", "Notify")) {
-            dbgprintf("dbus: Notify\n");
             if (dbus->cur_message)
                 dbus_message_unref(dbus->cur_message);
 
@@ -150,11 +145,9 @@ static gboolean dbus_handle(GIOChannel *gio, GIOCondition condition, gpointer da
             bar_render_global();
             continue;
         } else if (dbus_message_is_method_call(msg, "org.freedesktop.Notifications", "GetCapabilities")) {
-            dbgprintf("dbus: GetCapabilities\n");
             get_capabilities(dbus, msg);
         } else if (dbus_message_is_method_call(msg, "org.freedesktop.Notifications", "CloseNotification")) {
         } else if (dbus_message_is_method_call(msg, "org.freedesktop.Notifications", "GetServerInformation")) {
-            dbgprintf("dbus: GetServerInformation\n");
             get_server_information(dbus, msg);
         }
 
