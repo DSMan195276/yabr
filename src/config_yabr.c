@@ -81,7 +81,7 @@ struct yabr_config yabr_config = {
         .mode = { BAR_COLOR_MODE_FORE, BAR_COLOR_MODE_BACK },
         .status_urgent = { BAR_COLOR_STATUS_URGENT_FORE, BAR_COLOR_STATUS_URGENT_BACK },
         .centered = { BAR_COLOR_CENTERED_FORE, BAR_COLOR_CENTERED_BACK },
-        .def = { BAR_DEFAULT_COLOR_FORE, BAR_DEFAULT_COLOR_BACK },
+        .background = { BAR_DEFAULT_COLOR_FORE, BAR_DEFAULT_COLOR_BACK },
         .section_count = 3,
         .section_cols = (struct bar_color[]) {
             { .fore = COLOR_FORE, .back = COLOR_SEC_B1 },
