@@ -99,8 +99,8 @@ static void lemonbar_exec(struct bar_output *output)
     char geometry[20];
     char fore[10], back[10];
 
-    snprintf(fore, sizeof(fore), "#%08x", yabr_config.colors.def.fore);
-    snprintf(back, sizeof(back), "#%08x", yabr_config.colors.def.back);
+    snprintf(fore, sizeof(fore), "#%08x", yabr_config.colors.background.fore);
+    snprintf(back, sizeof(back), "#%08x", yabr_config.colors.background.back);
     snprintf(geometry, sizeof(geometry),  "%dx%d+%d+0", output->width, yabr_config.lemonbar_font_size, output->x);
 
     char *const argv[] = {

@@ -220,7 +220,7 @@ static void bar_state_render_output(struct bar_state *state, struct bar_output *
     mode_render(state, output);
     title_render(state, output);
 
-    state->color = yabr_config.colors.def;
+    state->color = yabr_config.colors.background;
     render_color(state, output);
 
     if (state->centered
@@ -233,14 +233,14 @@ static void bar_state_render_output(struct bar_state *state, struct bar_output *
         render_single_status(state, output, state->centered);
 
         state->sep_direction = 0;
-        state->color = yabr_config.colors.def;
+        state->color = yabr_config.colors.background;
         render_color(state, output);
     }
 
     render_right_align(state, output);
     status_render(state, output);
 
-    state->color = yabr_config.colors.def;
+    state->color = yabr_config.colors.background;
 
     render_color_no_sep(state, output);
     render_finish(state, output);

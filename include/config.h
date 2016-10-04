@@ -20,7 +20,6 @@ enum {
 
 
 struct yabr_config_colors {
-    struct bar_color wsp;
     struct bar_color wsp_focused;
     struct bar_color wsp_unfocused;
     struct bar_color wsp_urgent;
@@ -30,7 +29,7 @@ struct yabr_config_colors {
     struct bar_color mode;
     struct bar_color status_urgent;
     struct bar_color centered;
-    struct bar_color def;
+    struct bar_color background;
 
     int section_count;
     struct bar_color *section_cols;

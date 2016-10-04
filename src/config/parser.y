@@ -449,9 +449,7 @@ struct variable *variable_find(const char *id)
 
 int global_assign_color_pair(const char *id, struct bar_color pair)
 {
-    if (strcmp(id, "wsp") == 0) {
-        yabr_config.colors.wsp = pair;
-    } else if (strcmp(id, "wsp_focused") == 0) {
+    if (strcmp(id, "wsp_focused") == 0) {
         yabr_config.colors.wsp_focused = pair;
     } else if (strcmp(id, "wsp_unfocused") == 0) {
         yabr_config.colors.wsp_unfocused = pair;
@@ -467,8 +465,8 @@ int global_assign_color_pair(const char *id, struct bar_color pair)
         yabr_config.colors.status_urgent = pair;
     } else if (strcmp(id, "centered") == 0) {
         yabr_config.colors.centered = pair;
-    } else if (strcmp(id, "def") == 0) {
-        yabr_config.colors.def = pair;
+    } else if (strcmp(id, "background") == 0) {
+        yabr_config.colors.background = pair;
     } else {
         return -1;
     }
