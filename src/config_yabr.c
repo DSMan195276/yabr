@@ -73,7 +73,6 @@ struct yabr_config yabr_config = {
     .debug = NULL,
 
     .colors = {
-        .wsp = { BAR_COLOR_WSP_FORE, BAR_COLOR_WSP_BACK },
         .wsp_focused = { BAR_COLOR_WSP_FOCUSED_FORE, BAR_COLOR_WSP_FOCUSED_BACK },
         .wsp_unfocused = { BAR_COLOR_WSP_UNFOCUSED_FORE, BAR_COLOR_WSP_UNFOCUSED_BACK },
         .wsp_urgent = { BAR_COLOR_WSP_URGENT_FORE, BAR_COLOR_WSP_URGENT_BACK },
