@@ -66,6 +66,13 @@ This String is printed inbetween 'blocks' where the color doesn't change. This s
 This String is printed inbetween 'blocks' where the color doesn't change. This separator is printed on the right side of the screen. For Powerline, this is the 'left facing' arrow (Arrows face inward).
 
 .TP
+.B use_notifications = \fIInteger\fR
+If true, yabr attempts to become the notification handler for the current dbus session. Notifications will be displayed in the title area when they are received.
+.TP
+.B notification_color = \fIColor-Pair\fR
+The color to display notifications in.
+
+.TP
 .B wsp_unfocused = \fIColor-Pair\fR
 The Color-Pair used to print the names of workspaces which are not currently focused.
 .TP

@@ -73,6 +73,8 @@ sep_leftside = "";
 sep_rightside_same = "";
 sep_leftside_same = "";
 
+use_notifications = true;
+notification_color = { wsp_urgent_fore, wsp_urgent_back };
 
 # centered can include one status
 center {

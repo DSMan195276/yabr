@@ -216,9 +216,19 @@ static void ws_list_render(struct bar_state *state, struct bar_output *output)
 static void bar_state_render_output(struct bar_state *state, struct bar_output *output)
 {
     render_left_align(state, output);
+
     ws_list_render(state, output);
     mode_render(state, output);
-    title_render(state, output);
+
+    if (!state->notif.cur_message) {
+        title_render(state, output);
+    } else {
+        char notif[256];
+        snprintf(notif, sizeof(notif), "%s: %s", state->notif.appname, state->notif.summary);
+        state->color = yabr_config.notification_color;
+        render_color(state, output);
+        fprintf(output->bar, " %s: %s ", state->notif.appname, state->notif.summary);
+    }
 
     state->color = yabr_config.colors.background;
     render_color(state, output);

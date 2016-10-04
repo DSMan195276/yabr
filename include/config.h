@@ -50,6 +50,9 @@ struct yabr_config {
     int lemonbar_font_size;
     int lemonbar_on_bottom;
 
+    int use_notifications;
+    struct bar_color notification_color;
+
     struct bar_state state;
 
     const struct status_description *descs[DESC_TOTAL];

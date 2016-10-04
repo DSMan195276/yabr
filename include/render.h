@@ -11,6 +11,7 @@
 #include "flag.h"
 #include "ws.h"
 #include "i3.h"
+#include "notif_dbus.h"
 #include "lemonbar.h"
 #include "status.h"
 
@@ -51,6 +52,8 @@ struct bar_state {
     int sep_direction, past_first_entry;
 
     struct i3_state i3_state;
+
+    struct notif_dbus notif;
 };
 
 #define BAR_STATE_INIT(state) \

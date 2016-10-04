@@ -14,6 +14,7 @@
 #include "outputs.h"
 #include "status.h"
 #include "config.h"
+#include "notif_dbus.h"
 #include "yabr_parser.h"
 
 void bar_render_global(void)
@@ -96,6 +97,12 @@ int main(int argc, char **argv)
         return 1;
 
     i3_state_setup(&yabr_config.state);
+
+    if (yabr_config.use_notifications) {
+        ret = notif_dbus_open(&yabr_config.state.notif);
+        if (ret)
+            dbgprintf("Unable to open notification daemon\n");
+    }
 
     outputs_update(&yabr_config.state.i3_state, &yabr_config.state);
 

@@ -467,6 +467,8 @@ int global_assign_color_pair(const char *id, struct bar_color pair)
         yabr_config.colors.centered = pair;
     } else if (strcmp(id, "background") == 0) {
         yabr_config.colors.background = pair;
+    } else if (strcmp(id, "notification_color") == 0) {
+        yabr_config.notification_color = pair;
     } else {
         return -1;
     }
@@ -482,6 +484,8 @@ int global_assign_integer(const char *id, uint32_t integer)
         yabr_config.lemonbar_font_size = integer;
     } else if (strcmp(id, "lemonbar_on_bottom") == 0) {
         yabr_config.lemonbar_on_bottom = integer;
+    } else if (strcmp(id, "use_notifications") == 0) {
+        yabr_config.use_notifications = integer;
     } else {
         return -1;
     }

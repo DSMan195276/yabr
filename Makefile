@@ -12,10 +12,12 @@ YABR_VERSION_N := $(YABR_VERSION).$(YABR_SUBLEVEL).$(YABR_PATCH)
 LIBFLAGS := `pkg-config --libs i3ipc-glib-1.0` \
 					-lasound \
 					-lm \
-					`pkg-config --libs libmpdclient`
+					`pkg-config --libs libmpdclient` \
+					`pkg-config --libs dbus-1`
 
 CFLAGS  += -I'./include' `pkg-config --cflags i3ipc-glib-1.0` \
 				`pkg-config --cflags libmpdclient` \
+				`pkg-config --cflags dbus-1` \
 				-DYABR_VERSION_N="$(YABR_VERSION_N)"
 
 # 'tree' references the current directory later-on
