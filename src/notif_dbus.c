@@ -56,12 +56,16 @@ static void setup_notify(struct notif_dbus *dbus)
     dbus_message_iter_next(&args);
     dbus_message_iter_get_basic(&args, &expires);
 
+    /* The default exparation period is 5 seocnds */
+    if (expires <= 0)
+        expires = 5000;
+
     dbus->appname = appname;
     dbus->summary = summary;
     dbus->body = body;
     dbus->expires = expires;
 
-    dbgprintf("Notification %s: %s -> %s\n", appname, summary, body);
+    dbgprintf("Notification %d: %s: %s -> %s\n", expires, appname, summary, body);
 
     reply = dbus_message_new_method_return(dbus->cur_message);
 

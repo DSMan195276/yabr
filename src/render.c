@@ -220,16 +220,13 @@ static void bar_state_render_output(struct bar_state *state, struct bar_output *
     ws_list_render(state, output);
     mode_render(state, output);
 
-    if (!state->notif.cur_message) {
-        title_render(state, output);
-    } else {
-        char notif[256];
-        snprintf(notif, sizeof(notif), "%s: %s", state->notif.appname, state->notif.summary);
+    if (state->notif.cur_message) {
         state->color = yabr_config.notification_color;
         render_color(state, output);
         fprintf(output->bar, " %s: %s ", state->notif.appname, state->notif.summary);
     }
 
+    title_render(state, output);
     state->color = yabr_config.colors.background;
     render_color(state, output);
 
