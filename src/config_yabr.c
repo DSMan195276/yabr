@@ -69,6 +69,9 @@
 
 #define LEMONBAR_FONT "-*-terminesspowerline-medium-*-*-*-12-*-*-*-*-*-*-*"
 
+#define LEMONBAR_ON_BOTTOM 0
+#define LEMONBAR_HEIGHT 12
+
 struct yabr_config yabr_config = {
     .debug = NULL,
 
@@ -99,8 +102,8 @@ struct yabr_config yabr_config = {
     .sep_leftside_same = BAR_SEP_LEFTSIDE_SAME,
 
     .lemonbar_font = LEMONBAR_FONT,
-    .lemonbar_font_size = 12,
-    .lemonbar_on_bottom = 0,
+    .lemonbar_height = LEMONBAR_HEIGHT,
+    .lemonbar_on_bottom = LEMONBAR_ON_BOTTOM,
 
     .state = BAR_STATE_INIT(yabr_config.state),
     .descs = {

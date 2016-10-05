@@ -101,7 +101,7 @@ static void lemonbar_exec(struct bar_output *output)
 
     snprintf(fore, sizeof(fore), "#%08x", yabr_config.colors.background.fore);
     snprintf(back, sizeof(back), "#%08x", yabr_config.colors.background.back);
-    snprintf(geometry, sizeof(geometry),  "%dx%d+%d+0", output->width, yabr_config.lemonbar_font_size, output->x);
+    snprintf(geometry, sizeof(geometry),  "%dx%d+%d+0", output->width, yabr_config.lemonbar_height, output->x);
 
     char *const argv[] = {
         "lemonbar",

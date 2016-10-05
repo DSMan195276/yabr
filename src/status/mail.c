@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <fcntl.h>
 #include <dirent.h>
 #include <sys/time.h>
 #include <sys/inotify.h>
@@ -126,6 +127,8 @@ static struct status *mail_status_create(const char *name, const char *mail_dir)
     snprintf(dir, sizeof(dir), "%s/new", mail_dir);
 
     inotify_add_watch(mail->inotifyfd, dir, IN_CREATE | IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY | IN_DELETE);
+
+    fcntl(mail->inotifyfd, F_SETFD, fcntl(mail->inotifyfd, F_GETFD) | FD_CLOEXEC);
 
     gio_read = g_io_channel_unix_new(mail->inotifyfd);
     g_io_add_watch(gio_read, G_IO_IN, mail_check_inotify, mail);

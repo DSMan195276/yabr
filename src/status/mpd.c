@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <mpd/client.h>
 #include <mpd/status.h>
@@ -145,9 +146,13 @@ static void mpdmon_connection_check_up(struct mpdmon *mpdmon)
 
 static void mpdmon_connection_up(struct mpdmon *mpdmon)
 {
+    int fd;
     GIOChannel *gio_read;
 
-    gio_read = g_io_channel_unix_new(mpd_connection_get_fd(mpdmon->conn));
+    fd = mpd_connection_get_fd(mpdmon->conn);
+    fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+
+    gio_read = g_io_channel_unix_new(fd);
     g_io_add_watch(gio_read, G_IO_IN, mpd_handle_idle, mpdmon);
 
     mpdmon_update_status(mpdmon);

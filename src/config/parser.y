@@ -480,8 +480,8 @@ int global_assign_integer(const char *id, uint32_t integer)
 {
     if (strcmp(id, "use_separator") == 0) {
         yabr_config.use_separator = integer;
-    } else if (strcmp(id, "lemonbar_font_size") == 0) {
-        yabr_config.lemonbar_font_size = integer;
+    } else if (strcmp(id, "lemonbar_height") == 0) {
+        yabr_config.lemonbar_height = integer;
     } else if (strcmp(id, "lemonbar_on_bottom") == 0) {
         yabr_config.lemonbar_on_bottom = integer;
     } else if (strcmp(id, "use_notifications") == 0) {

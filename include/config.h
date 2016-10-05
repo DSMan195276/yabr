@@ -47,7 +47,7 @@ struct yabr_config {
     char *sep_rightside_same, *sep_leftside_same;
 
     char *lemonbar_font;
-    int lemonbar_font_size;
+    int lemonbar_height;
     int lemonbar_on_bottom;
 
     int use_notifications;

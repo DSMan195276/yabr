@@ -61,7 +61,7 @@ sections = [
 ];
 
 lemonbar_font = "-*-terminesspowerline-medium-*-*-*-12-*-*-*-*-*-*-*";
-lemonbar_font_size = 16;
+lemonbar_height = 16;
 
 lemonbar_on_bottom = bottom;
 

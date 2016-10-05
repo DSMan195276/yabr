@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <ifaddrs.h>
@@ -217,6 +218,8 @@ static struct status *wireless_status_create(const char *ifname)
         goto cleanup_wireless;
 
     wireless_render_status(wireless);
+
+    fcntl(wireless->netlink_socket, F_SETFD, fcntl(wireless->netlink_socket, F_GETFD) | FD_CLOEXEC);
 
     gio_read = g_io_channel_unix_new(wireless->netlink_socket);
     g_io_add_watch(gio_read, G_IO_IN, wireless_handle_netlink, wireless);
