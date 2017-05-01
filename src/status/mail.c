@@ -25,6 +25,9 @@ struct mail {
     int new_count;
 
     int inotifyfd;
+
+    int urgent_timeout;
+    int urgent_count;
 };
 
 #define INOTIFY_BUF_LEN (128 * (sizeof(struct inotify_event) + 16))
@@ -59,6 +62,20 @@ static int count_new_mail(const char *mail_dir)
     return count;
 }
 
+static gboolean mail_end_urgent(gpointer data)
+{
+    struct mail *mail = data;
+
+    mail->urgent_count--;
+
+    if (mail->urgent_count == 0) {
+        flag_clear(&mail->status.flags, STATUS_URGENT);
+        bar_render_global();
+    }
+
+    return FALSE;
+}
+
 static int mail_update(struct mail *mail)
 {
     char buf[128];
@@ -71,6 +88,7 @@ static int mail_update(struct mail *mail)
 
     if (mail->new_count <= 0) {
         flag_clear(&mail->status.flags, STATUS_VISIBLE);
+        flag_clear(&mail->status.flags, STATUS_URGENT);
         return 1;
     }
 
@@ -78,6 +96,12 @@ static int mail_update(struct mail *mail)
 
     status_change_text(&mail->status, buf);
     flag_set(&mail->status.flags, STATUS_VISIBLE);
+
+    if (mail->new_count > old_count && mail->urgent_timeout > 0) {
+        mail->urgent_count++;
+        flag_set(&mail->status.flags, STATUS_URGENT);
+        g_timeout_add_seconds(mail->urgent_timeout, mail_end_urgent, mail);
+    }
 
     return 1;
 }
@@ -109,7 +133,7 @@ static gboolean mail_check_inotify(GIOChannel *gio, GIOCondition condition, gpoi
     return TRUE;
 }
 
-static struct status *mail_status_create(const char *name, const char *mail_dir)
+static struct status *mail_status_create(const char *name, const char *mail_dir, int timeout)
 {
     struct mail *mail;
     GIOChannel *gio_read;
@@ -120,6 +144,7 @@ static struct status *mail_status_create(const char *name, const char *mail_dir)
     mail->name = strdup(name);
     mail->mail_dir = strdup(mail_dir);
     mail->inotifyfd = inotify_init();
+    mail->urgent_timeout = timeout;
 
     mail_update(mail);
 
@@ -140,6 +165,7 @@ static struct status *mail_create(struct status_config_item *list)
 {
     const char *name = status_config_get_str(list, "name");
     const char *maildir = status_config_get_str(list, "maildir");
+    int timeout = status_config_get_int(list, "urgent_timeout");
 
     if (!name) {
         dbgprintf("mail: Error, name is empty\n");
@@ -151,7 +177,7 @@ static struct status *mail_create(struct status_config_item *list)
         return NULL;
     }
 
-    return mail_status_create(name, maildir);
+    return mail_status_create(name, maildir, timeout);
 }
 
 const struct status_description mail_status_description = {
@@ -159,6 +185,7 @@ const struct status_description mail_status_description = {
     .items = (struct status_config_item []) {
         STATUS_CONFIG_ITEM_STR("name", "Gmail"),
         STATUS_CONFIG_ITEM_STR("maildir", "/mnt/data/mail/Inbox"),
+        STATUS_CONFIG_ITEM_INT("urgent_timeout", 60),
         STATUS_CONFIG_END(),
     },
     .status_create = mail_create,
