@@ -133,6 +133,18 @@ static gboolean mail_check_inotify(GIOChannel *gio, GIOCondition condition, gpoi
     return TRUE;
 }
 
+static void mail_handle_cmd_ack(struct status *status, struct cmd_entry *cmd, const char *args)
+{
+    struct mail *mail = container_of(status, struct mail, status);
+
+    dbgprintf("mail: New mail ack\n");
+
+    if (mail->urgent_timeout > 0) {
+        flag_clear(&mail->status.flags, STATUS_URGENT);
+        bar_render_global();
+    }
+}
+
 static struct status *mail_status_create(const char *name, const char *mail_dir, int timeout)
 {
     struct mail *mail;
@@ -145,6 +157,10 @@ static struct status *mail_status_create(const char *name, const char *mail_dir,
     mail->mail_dir = strdup(mail_dir);
     mail->inotifyfd = inotify_init();
     mail->urgent_timeout = timeout;
+
+    mail->status.cmds[0].id = strdup("ack");
+    mail->status.cmds[0].cmd = strdup("ack");
+    mail->status.cmds[0].cmd_handle = mail_handle_cmd_ack;
 
     mail_update(mail);
 
