@@ -247,7 +247,7 @@ static struct status *alsa_create(struct status_config_item *list)
 const struct status_description alsa_status_description = {
     .name = "alsa",
     .items = (struct status_config_item []) {
-        STATUS_CONFIG_ITEM_STR("mixer", "master"),
+        STATUS_CONFIG_ITEM_STR("mixer", "Master"),
         STATUS_CONFIG_ITEM_STR("card", "default"),
         STATUS_CONFIG_END(),
     },
