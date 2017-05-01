@@ -145,9 +145,9 @@ static void status_render(struct bar_state *state, struct bar_output *output)
                 state->color = yabr_config.colors.status_last;
             else
                 state->color = yabr_config.colors.section_cols[cur_status_color];
-
-            cur_status_color = (cur_status_color + 1) % yabr_config.colors.section_count;
         }
+
+        cur_status_color = (cur_status_color + 1) % yabr_config.colors.section_count;
 
         render_color(state, output);
 
