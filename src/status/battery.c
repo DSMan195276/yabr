@@ -35,12 +35,13 @@ static void battery_get_state(struct battery *battery)
 {
 #define BUF_MAX 128
     char path[PATH_MAX];
-    char tmp[BUF_MAX];
+    char tmp[BUF_MAX + 1];
     char *line = NULL;
     size_t bufsize = 0, len;
     FILE *state;
     int64_t full_capacity = -1, remain_capacity = -1;
-    int64_t current_rate = -1;
+    int64_t full_energy = -1, energy_now = -1, power_now = -1;
+    int64_t energy_rate = -1;
 
     snprintf(path, sizeof(path), "/sys/class/power_supply/%s/uevent", battery->id);
 
@@ -65,7 +66,13 @@ static void battery_get_state(struct battery *battery)
             continue;
         } else if (sscanf(line, "POWER_SUPPLY_CHARGE_FULL=%ld\n", &full_capacity) == 1) {
             continue;
-        } else if (sscanf(line, "POWER_SUPPLY_CURRENT_NOW=%ld\n", &current_rate) == 1) {
+        } else if (sscanf(line, "POWER_SUPPLY_CURRENT_NOW=%ld\n", &energy_rate) == 1) {
+            continue;
+        } else if (sscanf(line, "POWER_SUPPLY_ENERGY_NOW=%ld\n", &energy_now) == 1) {
+            continue;
+        } else if (sscanf(line, "POWER_SUPPLY_ENERGY_FULL=%ld\n", &full_energy) == 1) {
+            continue;
+        } else if (sscanf(line, "POWER_SUPPLY_POWER_NOW=%ld\n", &power_now) == 1) {
             continue;
         }
     }
@@ -73,28 +80,33 @@ static void battery_get_state(struct battery *battery)
     if (battery->state == POWER_STATE_CHARGED)
         goto cleanup_state;
 
-    if (current_rate == -1 || full_capacity == -1 || remain_capacity == -1) {
+    if ((energy_rate == -1 || full_capacity == -1 || remain_capacity == -1)
+        && (energy_now == -1 || full_energy == -1 || power_now == -1)) {
         battery->minutes_left = 0;
         goto cleanup_state;
     }
 
-    if (battery->state == POWER_STATE_CHARGING && current_rate == 0)
+    if (battery->state == POWER_STATE_CHARGING && (power_now == 0 || energy_rate == 0))
         battery->state = POWER_STATE_CHARGED;
 
     switch (battery->state) {
     case POWER_STATE_CHARGING:
-        if (current_rate)
-            battery->minutes_left = ((full_capacity - remain_capacity) * 60) / current_rate;
+        if (energy_rate && energy_rate != -1)
+            battery->minutes_left = ((full_capacity - remain_capacity) * 60) / energy_rate;
+        else if (power_now && power_now != -1)
+            battery->minutes_left = ((full_energy - energy_now) * 60) / power_now;
         else
             battery->minutes_left = 0;
         break;
 
     case POWER_STATE_DISCHARGING:
-        if (current_rate)
-            battery->minutes_left = (remain_capacity * 60) / current_rate;
+        if (energy_rate && energy_rate != -1)
+            battery->minutes_left = (remain_capacity * 60) / energy_rate;
+        else if (power_now && power_now != -1)
+            battery->minutes_left = (energy_now * 60) / power_now;
         else
             battery->minutes_left = 0;
-        dbgprintf("Battery: Remain cap: %ld, current: %ld, minutes: %ld\n", remain_capacity, current_rate, battery->minutes_left);
+        dbgprintf("Battery: Remain cap: %ld, energy: %ld, minutes: %ld\n", remain_capacity, energy_rate, battery->minutes_left);
         break;
 
     case POWER_STATE_CHARGED:
@@ -138,6 +150,7 @@ static void battery_render(struct battery *battery)
 static gboolean battery_check_status(gpointer data)
 {
     struct battery *battery = data;
+    dbgprintf("Battery: Check status\n");
     battery_get_state(battery);
     battery_render(battery);
     bar_render_global();
